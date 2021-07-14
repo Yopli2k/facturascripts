@@ -145,6 +145,8 @@ class EditCliente extends ComercialContactController
     {
         $return = parent::editAction();
         if ($return && $this->active === $this->getMainViewName()) {
+            $this->checkSubaccountLength($this->getModel()->codsubcuenta);
+
             /// update contact emal and phones when customer email or phones are updated
             $this->updateContact($this->views[$this->active]->model);
         }
