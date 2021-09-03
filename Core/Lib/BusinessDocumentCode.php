@@ -16,6 +16,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+
 namespace FacturaScripts\Core\Lib;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
@@ -37,42 +38,33 @@ class BusinessDocumentCode
      * Generates a new identifier for humans from a document.
      *
      * @param BusinessDocument $document
-     * @param bool             $newNumber
+     * @param bool $newNumber
      */
-    public static function getNewCode(&$document, $newNumber = true)
+    public static function getNewCode(&$document, bool $newNumber = true)
     {
         $sequence = static::getSequence($document);
         if ($newNumber) {
             $document->numero = static::getNewNumber($sequence, $document);
         }
 
-        $document->codigo = \strtr($sequence->patron, [
-            '{ANYO}' => \date('Y', \strtotime($document->fecha)),
-            '{DIA}' => \date('d', \strtotime($document->fecha)),
-            '{EJE}' => $document->codejercicio,
-            '{EJE2}' => \substr($document->codejercicio, -2),
-            '{MES}' => \date('m', \strtotime($document->fecha)),
-            '{NUM}' => $document->numero,
-            '{SERIE}' => $document->codserie,
-            '{0NUM}' => \str_pad($document->numero, $sequence->longnumero, '0', \STR_PAD_LEFT),
-            '{0SERIE}' => \str_pad($document->codserie, 2, '0', \STR_PAD_LEFT)
-        ]);
+        $document->codigo = CodePatterns::trans(
+            $sequence->patron, $document, ['long' => $sequence->longnumero]
+        );
     }
 
     /**
-     *
      * @param SecuenciaDocumento $sequence
-     * @param BusinessDocument   $document
+     * @param BusinessDocument $document
      *
      * @return string
      */
-    protected static function getNewNumber(&$sequence, &$document)
+    protected static function getNewNumber(&$sequence, &$document): string
     {
         $previous = static::getPrevious($sequence, $document);
 
         /// find maximum number for this sequence data
         foreach ($previous as $lastDoc) {
-            $lastNumber = (int) $lastDoc->numero;
+            $lastNumber = (int)$lastDoc->numero;
             if ($lastNumber >= $sequence->numero || $sequence->usarhuecos) {
                 $sequence->numero = $lastNumber + 1;
             }
@@ -90,7 +82,7 @@ class BusinessDocumentCode
                     /// hole found
                     $document->fecha = $preDate;
                     $document->hora = $preHour;
-                    return (string) $expectedNumber;
+                    return (string)$expectedNumber;
                 }
 
                 $expectedNumber--;
@@ -101,11 +93,11 @@ class BusinessDocumentCode
             if (empty($previous)) {
                 /// no previous document, then use initial number
                 $sequence->numero = $sequence->inicio;
-            } elseif ($expectedNumber >= $sequence->inicio && $expectedNumber >= (int) $sequence->numero - self::GAP_LIMIT) {
+            } elseif ($expectedNumber >= $sequence->inicio && $expectedNumber >= $sequence->numero - self::GAP_LIMIT) {
                 /// the gap is in the first positions of the range
                 $document->fecha = $preDate;
                 $document->hora = $preHour;
-                return (string) $expectedNumber;
+                return (string)$expectedNumber;
             }
         }
 
@@ -115,19 +107,18 @@ class BusinessDocumentCode
         $sequence->numero++;
         $sequence->save();
 
-        return (string) $newNumber;
+        return (string)$newNumber;
     }
 
     /**
-     *
      * @param SecuenciaDocumento $sequence
-     * @param BusinessDocument   $document
+     * @param BusinessDocument $document
      *
      * @return BusinessDocument[]
      */
-    protected static function getPrevious(&$sequence, &$document)
+    protected static function getPrevious(&$sequence, &$document): array
     {
-        $order = \strtolower(\FS_DB_TYPE) == 'postgresql' ? ['CAST(numero as integer)' => 'DESC'] : ['CAST(numero as unsigned)' => 'DESC'];
+        $order = strtolower(FS_DB_TYPE) == 'postgresql' ? ['CAST(numero as integer)' => 'DESC'] : ['CAST(numero as unsigned)' => 'DESC'];
         $where = [
             new DataBaseWhere('codserie', $sequence->codserie),
             new DataBaseWhere('idempresa', $sequence->idempresa)
@@ -148,7 +139,7 @@ class BusinessDocumentCode
     protected static function getSequence(&$document)
     {
         $selectedSequence = new SecuenciaDocumento();
-        $patron = \substr(\strtoupper($document->modelClassName()), 0, 3) . '{EJE}{SERIE}{NUM}';
+        $patron = substr(strtoupper($document->modelClassName()), 0, 3) . '{EJE}{SERIE}{NUM}';
         $long = $selectedSequence->longnumero;
 
         /// find sequence for this document and serie
