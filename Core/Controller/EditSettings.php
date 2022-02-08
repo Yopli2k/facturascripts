@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2021 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2022 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -30,7 +30,7 @@ use FacturaScripts\Dinamic\Model\Impuesto;
 /**
  * Controller to edit main settings
  *
- * @author Artex Trading sa     <jcuello@artextrading.com>
+ * @author Jose Antonio Cuello  <yopli2000@gmail.com>
  * @author Carlos Garcia Gomez  <carlos@facturascripts.com>
  */
 class EditSettings extends PanelController
@@ -53,26 +53,9 @@ class EditSettings extends PanelController
     }
 
     /**
-     * Return a list of all XML settings files on XMLView folder.
-     *
-     * @return array
-     */
-    private function allSettingsXMLViews()
-    {
-        $names = [];
-        foreach ($this->toolBox()->files()->scanFolder(\FS_FOLDER . '/Dinamic/XMLView') as $fileName) {
-            if (0 === \strpos($fileName, self::KEY_SETTINGS)) {
-                $names[] = \substr($fileName, 0, -4);
-            }
-        }
-
-        return $names;
-    }
-
-    /**
      * @return bool
      */
-    protected function checkPaymentMethod()
+    protected function checkPaymentMethod(): bool
     {
         $appSettings = $this->toolBox()->appSettings();
 
@@ -102,7 +85,7 @@ class EditSettings extends PanelController
     /**
      * @return bool
      */
-    protected function checkWarehouse()
+    protected function checkWarehouse(): bool
     {
         $appSettings = $this->toolBox()->appSettings();
 
@@ -132,7 +115,7 @@ class EditSettings extends PanelController
     /**
      * @return bool
      */
-    protected function checkTax()
+    protected function checkTax(): bool
     {
         $appSettings = $this->toolBox()->appSettings();
 
@@ -171,31 +154,25 @@ class EditSettings extends PanelController
 
     /**
      * Load views
+     *
+     * Put the Default first in the list.
+     * Then we process all the views that start with Settings.
      */
     protected function createViews()
     {
         $this->setTemplate('EditSettings');
 
+        // añadimos una pestaña para cada archivo SettingsXXX
         $modelName = 'Settings';
         $icon = $this->getPageData()['icon'];
+        $this->createViewsSettings('SettingsDefault', $modelName, $icon);
         foreach ($this->allSettingsXMLViews() as $name) {
-            $title = $this->getKeyFromViewName($name);
-            $this->addEditView($name, $modelName, $title, $icon);
-
-            // change icon
-            $groups = $this->views[$name]->getColumns();
-            foreach ($groups as $group) {
-                if (!empty($group->icon)) {
-                    $this->views[$name]->icon = $group->icon;
-                    break;
-                }
+            if ($name != 'SettingsDefault') {
+                $this->createViewsSettings($name, $modelName, $icon);
             }
-
-            // disable buttons
-            $this->setSettings($name, 'btnDelete', false);
-            $this->setSettings($name, 'btnNew', false);
         }
 
+        // Añadimos el resto de pestañas
         $this->createViewsApiKeys();
         $this->createViewsIdFiscal();
         $this->createViewSequences();
@@ -241,6 +218,32 @@ class EditSettings extends PanelController
     }
 
     /**
+     * Add a view settings.
+     *
+     * @param string $name
+     * @param string $model
+     * @param string $icon
+     */
+    protected function createViewsSettings(string $name, string $model, string $icon)
+    {
+        $title = $this->getKeyFromViewName($name);
+        $this->addEditView($name, $model, $title, $icon);
+
+        // change icon
+        $groups = $this->views[$name]->getColumns();
+        foreach ($groups as $group) {
+            if (!empty($group->icon)) {
+                $this->views[$name]->icon = $group->icon;
+                break;
+            }
+        }
+
+        // disable buttons
+        $this->setSettings($name, 'btnDelete', false);
+        $this->setSettings($name, 'btnNew', false);
+    }
+
+    /**
      * @param string $viewName
      */
     protected function createViewSequences(string $viewName = 'ListSecuenciaDocumento')
@@ -253,7 +256,6 @@ class EditSettings extends PanelController
 
         // Filters
         $this->createDocTypeFilter($viewName);
-
         $this->views[$viewName]->addFilterSelect('idempresa', 'company', 'idempresa', Empresas::codeModel());
 
         $exercises = $this->codeModel->all('ejercicios', 'codejercicio', 'nombre');
@@ -274,7 +276,6 @@ class EditSettings extends PanelController
 
         // Filters
         $this->createDocTypeFilter($viewName);
-
         $this->views[$viewName]->addFilterSelect('actualizastock', 'update-stock', 'actualizastock', [
             ['code' => null, 'description' => '------'],
             ['code' => -2, 'description' => $this->toolBox()->i18n()->trans('book')],
@@ -331,18 +332,6 @@ class EditSettings extends PanelController
     }
 
     /**
-     * Returns the view id for a specified $viewName
-     *
-     * @param string $viewName
-     *
-     * @return string
-     */
-    private function getKeyFromViewName($viewName)
-    {
-        return \strtolower(\substr($viewName, \strlen(self::KEY_SETTINGS)));
-    }
-
-    /**
      * Load view data
      *
      * @param string $viewName
@@ -385,7 +374,7 @@ class EditSettings extends PanelController
     /**
      * @param string $viewName
      */
-    protected function loadPaymentMethodValues($viewName)
+    protected function loadPaymentMethodValues(string $viewName)
     {
         $idempresa = $this->toolBox()->appSettings()->get('default', 'idempresa');
         $where = [new DataBaseWhere('idempresa', $idempresa)];
@@ -400,7 +389,7 @@ class EditSettings extends PanelController
     /**
      * @param string $viewName
      */
-    protected function loadWarehouseValues($viewName)
+    protected function loadWarehouseValues(string $viewName)
     {
         $idempresa = $this->toolBox()->appSettings()->get('default', 'idempresa');
         $where = [new DataBaseWhere('idempresa', $idempresa)];
@@ -410,5 +399,34 @@ class EditSettings extends PanelController
         if ($columnWarehouse && $columnWarehouse->widget->getType() === 'select') {
             $columnWarehouse->widget->setValuesFromCodeModel($almacenes);
         }
+    }
+
+    /**
+     * Return a list of all XML settings files on XMLView folder.
+     *
+     * @return array
+     */
+    private function allSettingsXMLViews(): array
+    {
+        $names = [];
+        foreach ($this->toolBox()->files()->scanFolder(FS_FOLDER . '/Dinamic/XMLView') as $fileName) {
+            if (0 === strpos($fileName, self::KEY_SETTINGS)) {
+                $names[] = substr($fileName, 0, -4);
+            }
+        }
+
+        return $names;
+    }
+
+    /**
+     * Returns the view id for a specified $viewName
+     *
+     * @param string $viewName
+     *
+     * @return string
+     */
+    private function getKeyFromViewName(string $viewName): string
+    {
+        return strtolower(substr($viewName, strlen(self::KEY_SETTINGS)));
     }
 }
