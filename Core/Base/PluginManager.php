@@ -93,9 +93,6 @@ final class PluginManager
         }
     }
 
-    /**
-     * @return bool
-     */
     public function deploymentRequired(): bool
     {
         return self::$deploymentRequired;
@@ -119,6 +116,13 @@ final class PluginManager
             $this->disableByDependency($pluginName);
             $this->save();
             $this->deploy(true, true);
+
+            $pluginClass = "FacturaScripts\\Plugins\\$pluginName\\Init";
+            if (class_exists($pluginClass)) {
+                $initObject = new $pluginClass();
+                $initObject->uninstall();
+            }
+
             ToolBox::i18nLog()->notice('plugin-disabled', ['%pluginName%' => $pluginName]);
             return true;
         }
@@ -175,7 +179,6 @@ final class PluginManager
     }
 
     /**
-     *
      * @param string $pluginName
      */
     public function initPlugin(string $pluginName)
@@ -397,7 +400,7 @@ final class PluginManager
     {
         if (file_exists(self::PLUGIN_LIST_FILE)) {
             $content = file_get_contents(self::PLUGIN_LIST_FILE);
-            if ($content !== false) {
+            if ($content) {
                 return json_decode($content, true);
             }
         }

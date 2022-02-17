@@ -1,6 +1,6 @@
 /*
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2021 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2013-2022 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -37,6 +37,22 @@ function confirmAction(viewName, action, title, message, cancel, confirm) {
             }
         }
     });
+}
+
+function setModalParentForm(modal, form) {
+    if (form.code) {
+        // asignamos al formulario del modal el code del formulario donde sale el botón
+        $("#" + modal).parent().find('input[name="code"]').val(form.code.value);
+    } else if (form.elements['code[]']) {
+        let codes = [];
+        for (let num = 0; num < form.elements['code[]'].length; num++) {
+            if (form.elements['code[]'][num].checked) {
+                codes.push(form.elements['code[]'][num].value);
+            }
+        }
+        // asignamos al formulario del modal los checkboxes marcados del formulario donde sale el botón
+        $("#" + modal).parent().find('input[name="code"]').val(codes.join());
+    }
 }
 
 $(document).ready(function () {
