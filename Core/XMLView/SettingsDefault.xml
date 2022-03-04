@@ -153,9 +153,12 @@
                 <widget type="select" fieldname="idloginimage" onclick="EditAttachedFile"/>
             </column>
         </group>
-        <group name="api" title="api" icon="fas fa-laptop-code" numcolumns="12">
-            <column name="enable-api" numcolumns="3" order="100">
+        <group name="advanced2" numcolumns="12">
+            <column name="enable-api" order="100">
                 <widget type="checkbox" fieldname="enable_api"/>
+            </column>
+            <column name="enable-updates-beta" order="120">
+                <widget type="checkbox" fieldname="enableupdatesbeta"/>
             </column>
         </group>
     </columns>
