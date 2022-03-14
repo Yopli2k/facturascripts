@@ -53,7 +53,7 @@ final class Migrations
         // cuando hay miles de registros en el canal master, eliminamos los antiguos para evitar problemas de rendimiento
         $dataBase = new DataBase();
         $date = date("Y-m-d H:i:s", strtotime("-1 month"));
-        $sql = "DELETE logs WHERE channel = 'master' AND time < '" . $date . "';";
+        $sql = "DELETE FROM logs WHERE channel = 'master' AND time < '" . $date . "';";
         $dataBase->exec($sql);
     }
 
@@ -65,8 +65,10 @@ final class Migrations
     private static function unlockNullProducts()
     {
         $dataBase = new DataBase();
-        $sql = 'UPDATE productos SET bloqueado = false WHERE bloqueado IS NULL;';
-        $dataBase->exec($sql);
+        if ($dataBase->tableExists('productos')) {
+            $sql = 'UPDATE productos SET bloqueado = false WHERE bloqueado IS NULL;';
+            $dataBase->exec($sql);
+        }
     }
 
     private static function updateInvoiceStatus()
