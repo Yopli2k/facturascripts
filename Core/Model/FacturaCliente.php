@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2021 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2013-2022 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -35,11 +35,6 @@ class FacturaCliente extends Base\SalesDocument
     use Base\InvoiceTrait;
 
     /**
-     * @var int
-     */
-    public $idliquidacion;
-
-    /**
      * Reset the values of all model properties.
      */
     public function clear()
@@ -53,7 +48,7 @@ class FacturaCliente extends Base\SalesDocument
      *
      * @return DinLineaFactura[]
      */
-    public function getLines()
+    public function getLines(): array
     {
         $lineaModel = new DinLineaFactura();
         $where = [new DataBaseWhere('idfactura', $this->idfactura)];
@@ -96,7 +91,7 @@ class FacturaCliente extends Base\SalesDocument
      *
      * @return string
      */
-    public static function tableName()
+    public static function tableName(): string
     {
         return 'facturascli';
     }
@@ -143,18 +138,5 @@ class FacturaCliente extends Base\SalesDocument
         }
 
         return true;
-    }
-
-    /**
-     * @return bool
-     */
-    protected function onChangeAgent()
-    {
-        if ($this->idliquidacion) {
-            $this->toolBox()->i18nLog()->warning('cant-change-agent-in-settlement');
-            return false;
-        }
-
-        return parent::onChangeAgent();
     }
 }
