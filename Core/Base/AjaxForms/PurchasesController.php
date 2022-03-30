@@ -145,7 +145,8 @@ abstract class PurchasesController extends PanelController
                 return $this->recalculateAction(false);
 
             case 'save-doc':
-                return $this->saveDocAction();
+                $this->saveDocAction();
+                return false;
 
             case 'save-paid':
                 return $this->savePaidAction();
@@ -317,7 +318,7 @@ abstract class PurchasesController extends PanelController
 
         $this->response->setContent(json_encode(['ok' => true, 'newurl' => $model->url() . '&action=save-ok']));
         $this->dataBase->commit();
-        return false;
+        return true;
     }
 
     protected function savePaidAction(): bool
@@ -340,7 +341,9 @@ abstract class PurchasesController extends PanelController
 
     protected function saveStatusAction(): bool
     {
-        $this->setTemplate(false);
+        if (false === $this->saveDocAction()) {
+            return false;
+        }
 
         $model = $this->getModel();
         $model->idestado = (int)$this->request->request->get('selectedLine');
