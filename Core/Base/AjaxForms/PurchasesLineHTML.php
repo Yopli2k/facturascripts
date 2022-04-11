@@ -38,13 +38,13 @@ class PurchasesLineHTML
     use CommonLineHTML;
 
     /** @var array */
-    protected static $deletedLines = [];
+    private static $deletedLines = [];
 
     /** @var PurchasesLineModInterface[] */
     private static $mods = [];
 
     /** @var int */
-    protected static $num = 0;
+    private static $num = 0;
 
     public static function addMod(PurchasesLineModInterface $mod)
     {
@@ -73,7 +73,8 @@ class PurchasesLineHTML
         // new lines
         for ($num = 1; $num < 1000; $num++) {
             if (isset($formData['cantidad_n' . $num]) && $rmLineId !== 'n' . $num) {
-                $newLine = isset($formData['referencia_n' . $num]) ? $model->getNewProductLine($formData['referencia_n' . $num]) : $model->getNewLine();
+                $newLine = isset($formData['referencia_n' . $num]) ?
+                    $model->getNewProductLine($formData['referencia_n' . $num]) : $model->getNewLine();
                 $idNewLine = 'n' . $num;
                 self::applyToLine($formData, $newLine, $idNewLine);
                 $lines[] = $newLine;
@@ -81,7 +82,7 @@ class PurchasesLineHTML
         }
 
         // add new line
-        if ($formData['action'] === 'add-product') {
+        if ($formData['action'] === 'add-product' || $formData['action'] === 'fast-product') {
             $lines[] = $model->getNewProductLine($formData['selectedLine']);
         } elseif ($formData['action'] === 'fast-line') {
             $newLine = static::getFastLine($model, $formData);
@@ -95,6 +96,14 @@ class PurchasesLineHTML
         // mods
         foreach (self::$mods as $mod) {
             $mod->apply($model, $lines, $formData);
+        }
+    }
+
+    public static function assets()
+    {
+        // mods
+        foreach (self::$mods as $mod) {
+            $mod->assets();
         }
     }
 
@@ -123,6 +132,13 @@ class PurchasesLineHTML
             $map['linetotal_' . $idlinea] = $line->pvptotal * (100 + $line->iva + $line->recargo - $line->irpf) / 100;
         }
 
+        // mods
+        foreach (self::$mods as $mod) {
+            foreach ($mod->map($lines, $model) as $key => $value) {
+                $map[$key] = $value;
+            }
+        }
+
         return $map;
     }
 
@@ -134,24 +150,24 @@ class PurchasesLineHTML
      */
     public static function render(array $lines, PurchaseDocument $model): string
     {
+        $i18n = new Translator();
         $html = '';
         foreach ($lines as $line) {
-            $html .= self::renderLine($line, $model);
+            $html .= self::renderLine($i18n, $line, $model);
         }
-
-        return empty($html) && $model->codproveedor ?
-            '<div class="alert alert-warning border-top mb-0">' . ToolBox::i18n()->trans('new-invoice-line-p') . '</div>' :
-            $html;
+        if (empty($html)) {
+            $html .= '<div class="container-fluid"><div class="form-row table-warning"><div class="col p-3 text-center">'
+                . $i18n->trans('new-invoice-line-p') . '</div></div></div>';
+        }
+        return empty($model->codproveedor) ? '' : self::renderTitles($i18n, $model) . $html;
     }
 
-    public static function renderLine(PurchaseDocumentLine $line, PurchaseDocument $model): string
+    public static function renderLine(Translator $i18n, PurchaseDocumentLine $line, PurchaseDocument $model): string
     {
         self::$num++;
-        $i18n = new Translator();
         $idlinea = $line->idlinea ?? 'n' . self::$num;
-        $cssClass = static::$num % 2 == 0 ? 'bg-white border-top' : 'bg-light border-top';
-        return '<div class="' . $cssClass . ' line pl-2 pr-2">'
-            . '<div class="form-row align-items-end">'
+        return '<div class="container-fluid"><div class="form-row align-items-center border-bottom pb-3 pb-lg-0">'
+            . self::renderField($i18n, $idlinea, $line, $model, 'referencia')
             . self::renderField($i18n, $idlinea, $line, $model, 'descripcion')
             . self::renderField($i18n, $idlinea, $line, $model, 'cantidad')
             . self::renderNewFields($i18n, $idlinea, $line, $model)
@@ -159,11 +175,122 @@ class PurchasesLineHTML
             . self::renderField($i18n, $idlinea, $line, $model, 'dtopor')
             . self::renderField($i18n, $idlinea, $line, $model, 'codimpuesto')
             . self::renderField($i18n, $idlinea, $line, $model, '_total')
-            . self::renderCalculatorBtn($i18n, $idlinea, $model, 'purchasesLineTotalWithTaxes')
             . self::renderExpandButton($i18n, $idlinea, $model, 'purchasesFormAction')
-            . '</div>'
-            . self::renderLineModal($i18n, $line, $idlinea, $model)
+            . '</div>' . self::renderLineModal($i18n, $line, $idlinea, $model) . '</div>';
+    }
+
+    private static function applyToLine(array $formData, PurchaseDocumentLine &$line, string $id)
+    {
+        $line->orden = (int)$formData['orden_' . $id];
+        $line->cantidad = (float)$formData['cantidad_' . $id];
+        $line->dtopor = (float)$formData['dtopor_' . $id];
+        $line->dtopor2 = (float)$formData['dtopor2_' . $id];
+        $line->descripcion = $formData['descripcion_' . $id];
+        $line->irpf = (float)($formData['irpf_' . $id] ?? '0');
+        $line->iva = (float)($formData['iva_' . $id] ?? '0');
+        $line->recargo = (float)($formData['recargo_' . $id] ?? '0');
+        $line->suplido = (bool)($formData['suplido_' . $id] ?? '0');
+        $line->pvpunitario = (float)$formData['pvpunitario_' . $id];
+
+        // mods
+        foreach (self::$mods as $mod) {
+            $mod->applyToLine($formData, $line, $id);
+        }
+    }
+
+    private static function cantidad(Translator $i18n, string $idlinea, PurchaseDocumentLine $line, PurchaseDocument $model, string $jsFunc): string
+    {
+        if (false === $model->editable) {
+            return '<div class="col-sm-2 col-lg-1 order-3">'
+                . '<div class="d-lg-none mt-2 small">' . $i18n->trans('quantity') . '</div>'
+                . '<input type="number" class="form-control form-control-sm border-0" value="' . $line->cantidad . '" disabled=""/>'
+                . '</div>';
+        }
+
+        return '<div class="col-sm-2 col-lg-1 order-3">'
+            . '<div class="d-lg-none mt-2 small">' . $i18n->trans('quantity') . '</div>'
+            . '<input type="number" name="cantidad_' . $idlinea . '" value="' . $line->cantidad
+            . '" class="form-control form-control-sm border-0 doc-line-qty" onkeyup="return ' . $jsFunc . '(\'recalculate-line\', \'0\');"/>'
             . '</div>';
+    }
+
+    private static function getFastLine(PurchaseDocument $model, array $formData): ?PurchaseDocumentLine
+    {
+        if (empty($formData['fastli'])) {
+            return $model->getNewLine();
+        }
+
+        $variantModel = new Variante();
+        $whereBarcode = [new DataBaseWhere('codbarras', $formData['fastli'])];
+        foreach ($variantModel->all($whereBarcode) as $variante) {
+            return $model->getNewProductLine($variante->referencia);
+        }
+
+        ToolBox::i18nLog()->warning('product-not-found', ['%ref%' => $formData['fastli']]);
+        return null;
+    }
+
+    private static function precio(Translator $i18n, string $idlinea, PurchaseDocumentLine $line, PurchaseDocument $model, string $jsFunc): string
+    {
+        if (false === $model->editable) {
+            return '<div class="col-sm col-lg-1 order-4">'
+                . '<div class="d-lg-none mt-2 small">' . $i18n->trans('price') . '</div>'
+                . '<input type="number" value="' . $line->pvpunitario . '" class="form-control form-control-sm border-0" disabled=""/>'
+                . '</div>';
+        }
+
+        $attributes = 'name="pvpunitario_' . $idlinea . '" onkeyup="return ' . $jsFunc . '(\'recalculate-line\', \'0\');"';
+        return '<div class="col-sm col-lg-1 order-4">'
+            . '<div class="d-lg-none mt-2 small">' . $i18n->trans('price') . '</div>'
+            . '<input type="number" ' . $attributes . ' value="' . $line->pvpunitario . '" class="form-control form-control-sm border-0"/>'
+            . '</div>';
+    }
+
+    private static function renderField(Translator $i18n, string $idlinea, PurchaseDocumentLine $line, PurchaseDocument $model, string $field): ?string
+    {
+        foreach (self::$mods as $mod) {
+            $html = $mod->renderField($i18n, $idlinea, $line, $model, $field);
+            if ($html !== null) {
+                return $html;
+            }
+        }
+
+        switch ($field) {
+            case '_total':
+                return self::lineTotal($i18n, $idlinea, $line, $model, 'purchasesLineTotalWithTaxes');
+
+            case 'cantidad':
+                return self::cantidad($i18n, $idlinea, $line, $model, 'purchasesFormActionWait');
+
+            case 'codimpuesto':
+                return self::codimpuesto($i18n, $idlinea, $line, $model, 'purchasesFormAction');
+
+            case 'descripcion':
+                return self::descripcion($i18n, $idlinea, $line, $model);
+
+            case 'dtopor':
+                return self::dtopor($i18n, $idlinea, $line, $model, 'purchasesFormActionWait');
+
+            case 'dtopor2':
+                return self::dtopor2($i18n, $idlinea, $line, $model, 'dtopor2', 'purchasesFormActionWait');
+
+            case 'irpf':
+                return self::irpf($i18n, $idlinea, $line, $model, 'purchasesFormAction');
+
+            case 'pvpunitario':
+                return self::precio($i18n, $idlinea, $line, $model, 'purchasesFormActionWait');
+
+            case 'recargo':
+                return self::recargo($i18n, $idlinea, $line, $model, 'purchasesFormActionWait');
+
+            case 'referencia':
+                return self::referencia($i18n, $idlinea, $line, $model);
+
+            case 'suplido':
+                return self::suplido($i18n, $idlinea, $line, $model, 'purchasesFormAction');
+        }
+
+        return null;
     }
 
     private static function renderLineModal(Translator $i18n, PurchaseDocumentLine $line, string $idlinea, PurchaseDocument $model): string
@@ -205,120 +332,30 @@ class PurchasesLineHTML
             . '</div>';
     }
 
-    private static function applyToLine(array $formData, PurchaseDocumentLine &$line, string $id)
+    private static function renderNewFields(Translator $i18n, string $idlinea, PurchaseDocumentLine $line, PurchaseDocument $model): string
     {
-        $line->orden = (int)$formData['orden_' . $id];
-        $line->cantidad = (float)$formData['cantidad_' . $id];
-        $line->dtopor = (float)$formData['dtopor_' . $id];
-        $line->dtopor2 = (float)$formData['dtopor2_' . $id];
-        $line->descripcion = $formData['descripcion_' . $id];
-        $line->irpf = (float)($formData['irpf_' . $id] ?? '0');
-        $line->iva = (float)($formData['iva_' . $id] ?? '0');
-        $line->recargo = (float)($formData['recargo_' . $id] ?? '0');
-        $line->suplido = (bool)($formData['suplido_' . $id] ?? '0');
-        $line->pvpunitario = (float)$formData['pvpunitario_' . $id];
-
-        // mods
+        // cargamos los nuevos campos
+        $newFields = [];
         foreach (self::$mods as $mod) {
-            $mod->applyToLine($formData, $line, $id);
-        }
-    }
-
-    protected static function cantidad(Translator $i18n, string $idlinea, PurchaseDocumentLine $line, PurchaseDocument $model, string $jsFunc): string
-    {
-        if (false === $model->editable) {
-            return '<div class="col-sm-2 col-xl-1 small order-2">' . $i18n->trans('quantity')
-                . '<input type="number" class="form-control mb-1" value="' . $line->cantidad . '" disabled=""/>'
-                . '</div>';
-        }
-
-        return '<div class="col-sm-2 col-xl-1 small order-2">' . $i18n->trans('quantity')
-            . '<input type="number" name="cantidad_' . $idlinea . '" value="' . $line->cantidad
-            . '" class="form-control mb-1" onkeyup="return ' . $jsFunc . '(\'recalculate-line\', \'0\');"/>'
-            . '</div>';
-    }
-
-    protected static function getFastLine(PurchaseDocument $model, array $formData): ?PurchaseDocumentLine
-    {
-        if (empty($formData['fastli'])) {
-            return $model->getNewLine();
-        }
-
-        $variantModel = new Variante();
-        $whereBarcode = [new DataBaseWhere('codbarras', $formData['fastli'])];
-        foreach ($variantModel->all($whereBarcode) as $variante) {
-            return $model->getNewProductLine($variante->referencia);
-        }
-
-        $whereRef = [new DataBaseWhere('referencia', $formData['fastli'])];
-        foreach ($variantModel->all($whereRef) as $variante) {
-            return $model->getNewProductLine($variante->referencia);
-        }
-
-        ToolBox::i18nLog()->warning('product-not-found', ['%ref%' => $formData['fastli']]);
-        return null;
-    }
-
-    protected static function precio(Translator $i18n, string $idlinea, PurchaseDocumentLine $line, PurchaseDocument $model, string $jsFunc): string
-    {
-        if (false === $model->editable) {
-            return '<div class="col-sm-2 col-xl-1 order-3">'
-                . '<div class="mb-1 small">' . $i18n->trans('price')
-                . '<input type="number" value="' . $line->pvpunitario . '" class="form-control" disabled=""/>'
-                . '</div>'
-                . '</div>';
-        }
-
-        $attributes = 'name="pvpunitario_' . $idlinea . '" onkeyup="return ' . $jsFunc . '(\'recalculate-line\', \'0\');"';
-        return '<div class="col-sm-2 col-xl-1 order-3">'
-            . '<div class="mb-1 small">' . $i18n->trans('price')
-            . '<input type="number" ' . $attributes . ' value="' . $line->pvpunitario . '" class="form-control"/>'
-            . '</div>'
-            . '</div>';
-    }
-
-    private static function renderField(Translator $i18n, string $idlinea, PurchaseDocumentLine $line, PurchaseDocument $model, string $field): ?string
-    {
-        foreach (self::$mods as $mod) {
-            $html = $mod->renderField($i18n, $idlinea, $line, $model, $field);
-            if ($html !== null) {
-                return $html;
+            foreach ($mod->newFields() as $field) {
+                if (false === in_array($field, $newFields)) {
+                    $newFields[] = $field;
+                }
             }
         }
 
-        switch ($field) {
-            case '_total':
-                return self::lineTotal($i18n, $idlinea, $line, $model);
-
-            case 'cantidad':
-                return self::cantidad($i18n, $idlinea, $line, $model, 'purchasesFormActionWait');
-
-            case 'codimpuesto':
-                return self::codimpuesto($i18n, $idlinea, $line, $model, 'purchasesFormAction');
-
-            case 'descripcion':
-                return self::descripcion($i18n, $idlinea, $line, $model);
-
-            case 'dtopor':
-                return self::dtopor($i18n, $idlinea, $line, $model, 'purchasesFormActionWait');
-
-            case 'dtopor2':
-                return self::dtopor2($i18n, $idlinea, $line, $model, 'dtopor2', 'purchasesFormActionWait');
-
-            case 'irpf':
-                return self::irpf($i18n, $idlinea, $line, $model, 'purchasesFormAction');
-
-            case 'pvpunitario':
-                return self::precio($i18n, $idlinea, $line, $model, 'purchasesFormActionWait');
-
-            case 'recargo':
-                return self::recargo($i18n, $idlinea, $line, $model, 'purchasesFormActionWait');
-
-            case 'suplido':
-                return self::suplido($i18n, $idlinea, $line, $model, 'purchasesFormAction');
+        // renderizamos los campos
+        $html = '';
+        foreach ($newFields as $field) {
+            foreach (self::$mods as $mod) {
+                $fieldHtml = $mod->renderField($i18n, $idlinea, $line, $model, $field);
+                if ($fieldHtml !== null) {
+                    $html .= $fieldHtml;
+                    break;
+                }
+            }
         }
-
-        return null;
+        return $html;
     }
 
     private static function renderNewModalFields(Translator $i18n, string $idlinea, PurchaseDocumentLine $line, PurchaseDocument $model): string
@@ -347,12 +384,12 @@ class PurchasesLineHTML
         return $html;
     }
 
-    private static function renderNewFields(Translator $i18n, string $idlinea, PurchaseDocumentLine $line, PurchaseDocument $model): string
+    private static function renderNewTitles(Translator $i18n, PurchaseDocument $model): string
     {
         // cargamos los nuevos campos
         $newFields = [];
         foreach (self::$mods as $mod) {
-            foreach ($mod->newFields() as $field) {
+            foreach ($mod->newTitles() as $field) {
                 if (false === in_array($field, $newFields)) {
                     $newFields[] = $field;
                 }
@@ -363,7 +400,7 @@ class PurchasesLineHTML
         $html = '';
         foreach ($newFields as $field) {
             foreach (self::$mods as $mod) {
-                $fieldHtml = $mod->renderField($i18n, $idlinea, $line, $model, $field);
+                $fieldHtml = $mod->renderTitle($i18n, $model, $field);
                 if ($fieldHtml !== null) {
                     $html .= $fieldHtml;
                     break;
@@ -371,5 +408,58 @@ class PurchasesLineHTML
             }
         }
         return $html;
+    }
+
+    private static function renderTitle(Translator $i18n, PurchaseDocument $model, string $field): ?string
+    {
+        foreach (self::$mods as $mod) {
+            $html = $mod->renderTitle($i18n, $model, $field);
+            if ($html !== null) {
+                return $html;
+            }
+        }
+
+        switch ($field) {
+            case '_actionsButton':
+                return self::titleActionsButton($model);
+
+            case '_total':
+                return self::titleTotal($i18n);
+
+            case 'cantidad':
+                return self::titleCantidad($i18n);
+
+            case 'codimpuesto':
+                return self::titleCodimpuesto($i18n);
+
+            case 'descripcion':
+                return self::titleDescripcion($i18n);
+
+            case 'dtopor':
+                return self::titleDtopor($i18n);
+
+            case 'pvpunitario':
+                return self::titlePrecio($i18n);
+
+            case 'referencia':
+                return self::titleReferencia($i18n);
+        }
+
+        return null;
+    }
+
+    private static function renderTitles(Translator $i18n, PurchaseDocument $model): string
+    {
+        return '<div class="container-fluid d-none d-lg-block"><div class="form-row border-bottom">'
+            . self::renderTitle($i18n, $model, 'referencia')
+            . self::renderTitle($i18n, $model, 'descripcion')
+            . self::renderTitle($i18n, $model, 'cantidad')
+            . self::renderNewTitles($i18n, $model)
+            . self::renderTitle($i18n, $model, 'pvpunitario')
+            . self::renderTitle($i18n, $model, 'dtopor')
+            . self::renderTitle($i18n, $model, 'codimpuesto')
+            . self::renderTitle($i18n, $model, '_total')
+            . self::renderTitle($i18n, $model, '_actionsButton')
+            . '</div></div>';
     }
 }

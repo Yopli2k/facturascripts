@@ -29,6 +29,7 @@ use FacturaScripts\Core\Model\Base\PurchaseDocument;
 use FacturaScripts\Core\Model\Base\PurchaseDocumentLine;
 use FacturaScripts\Dinamic\Lib\AssetManager;
 use FacturaScripts\Dinamic\Model\Proveedor;
+use FacturaScripts\Dinamic\Model\Variante;
 
 /**
  * Description of PurchasesController
@@ -90,6 +91,28 @@ abstract class PurchasesController extends PanelController
         return Series::all();
     }
 
+    protected function autocompleteProductAction(): bool
+    {
+        $this->setTemplate(false);
+
+        $list = [];
+        $variante = new Variante();
+        $query = (string)$this->request->get('term');
+        foreach ($variante->codeModelSearch($query, 'referencia') as $value) {
+            $list[] = [
+                'key' => $this->toolBox()->utils()->fixHtml($value->code),
+                'value' => $this->toolBox()->utils()->fixHtml($value->description)
+            ];
+        }
+
+        if (empty($list)) {
+            $list[] = ['key' => null, 'value' => $this->toolBox()->i18n()->trans('no-data')];
+        }
+
+        $this->response->setContent(json_encode($list));
+        return false;
+    }
+
     protected function createViews()
     {
         $this->setTabsPosition('top');
@@ -104,7 +127,9 @@ abstract class PurchasesController extends PanelController
         $this->addHtmlView(static::MAIN_VIEW_NAME, static::MAIN_VIEW_TEMPLATE, $this->getModelClassName(), $pageData['title'], 'fas fa-file');
         AssetManager::add('css', FS_ROUTE . '/node_modules/jquery-ui-dist/jquery-ui.min.css', 2);
         AssetManager::add('js', FS_ROUTE . '/node_modules/jquery-ui-dist/jquery-ui.min.js', 2);
-        AssetManager::add('js', FS_ROUTE . '/Dinamic/Assets/JS/WidgetAutocomplete.js');
+        PurchasesHeaderHTML::assets();
+        PurchasesLineHTML::assets();
+        PurchasesFooterHTML::assets();
     }
 
     protected function deleteDocAction(): bool
@@ -132,8 +157,12 @@ abstract class PurchasesController extends PanelController
             case 'add-file':
                 return $this->addFileAction();
 
+            case 'autocomplete-product':
+                return $this->autocompleteProductAction();
+
             case 'add-product':
             case 'fast-line':
+            case 'fast-product':
             case 'new-line':
             case 'recalculate':
             case 'rm-line':
@@ -355,7 +384,8 @@ abstract class PurchasesController extends PanelController
 
     protected function saveStatusAction(): bool
     {
-        if (false === $this->saveDocAction()) {
+        $this->setTemplate(false);
+        if ($this->getModel()->editable && false === $this->saveDocAction()) {
             return false;
         }
 

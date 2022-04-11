@@ -120,6 +120,14 @@ class SalesHeaderHTML
         }
     }
 
+    public static function assets()
+    {
+        // mods
+        foreach (self::$mods as $mod) {
+            $mod->assets();
+        }
+    }
+
     public static function render(SalesDocument $model): string
     {
         $i18n = new Translator();
@@ -174,7 +182,7 @@ class SalesHeaderHTML
             return '<div class="col-sm-3">'
                 . '<div class="form-group">' . $i18n->trans('customer')
                 . '<input type="hidden" name="codcliente"/>'
-                . '<a href="#" class="btn btn-block btn-primary" onclick="$(\'#findCustomerModal\').modal();'
+                . '<a href="#" id="btnFindCustomerModal" class="btn btn-block btn-primary" onclick="$(\'#findCustomerModal\').modal();'
                 . ' $(\'#findCustomerInput\').focus(); return false;"><i class="fas fa-users fa-fw"></i> '
                 . $i18n->trans('select') . '</a>'
                 . '</div>'
@@ -236,7 +244,8 @@ class SalesHeaderHTML
     private static function detail(Translator $i18n, SalesDocument $model, bool $force = false): string
     {
         if (empty($model->primaryColumnValue()) && $force === false) {
-            return '';
+            // necesitamos el modal para tener los inputs en el form
+            return self::detailModal($i18n, $model);
         }
 
         $css = $force ? 'col-sm-auto' : 'col-sm';
@@ -256,8 +265,7 @@ class SalesHeaderHTML
             . '<div class="modal-content">'
             . '<div class="modal-header">'
             . '<h5 class="modal-title">'
-            . $i18n->trans($model->modelClassName() . '-min')
-            . ' ' . $model->codigo
+            . $i18n->trans($model->modelClassName() . '-min') . ' ' . $model->codigo
             . '</h5>'
             . '<button type="button" class="close" data-dismiss="modal" aria-label="Close">'
             . '<span aria-hidden="true">&times;</span>'

@@ -19,11 +19,11 @@
 
 namespace FacturaScripts\Core\Base\AjaxForms;
 
+use FacturaScripts\Core\Base\Contract\PurchasesModInterface;
 use FacturaScripts\Core\Base\Translator;
 use FacturaScripts\Core\Model\Base\PurchaseDocument;
 use FacturaScripts\Core\Model\User;
 use FacturaScripts\Dinamic\Model\Proveedor;
-use FacturaScripts\Plugins\BetaForms\Contract\PurchasesModInterface;
 
 /**
  * Description of PurchasesHeaderHTML
@@ -86,6 +86,14 @@ class PurchasesHeaderHTML
         }
     }
 
+    public static function assets()
+    {
+        // mods
+        foreach (self::$mods as $mod) {
+            $mod->assets();
+        }
+    }
+
     public static function render(PurchaseDocument $model): string
     {
         $i18n = new Translator();
@@ -116,7 +124,7 @@ class PurchasesHeaderHTML
             return '<div class="col-sm-3">'
                 . '<div class="form-group">' . $i18n->trans('supplier')
                 . '<input type="hidden" name="codproveedor" />'
-                . '<a href="#" class="btn btn-block btn-primary" onclick="$(\'#findSupplierModal\').modal();'
+                . '<a href="#" id="btnFindSupplierModal" class="btn btn-block btn-primary" onclick="$(\'#findSupplierModal\').modal();'
                 . ' $(\'#findSupplierInput\').focus(); return false;"><i class="fas fa-users fa-fw"></i> '
                 . $i18n->trans('select') . '</a>'
                 . '</div>'
@@ -149,7 +157,8 @@ class PurchasesHeaderHTML
     private static function detail(Translator $i18n, PurchaseDocument $model, bool $force = false): string
     {
         if (empty($model->primaryColumnValue()) && $force === false) {
-            return '';
+            // necesitamos el modal para tener los inputs en el form
+            return self::detailModal($i18n, $model);
         }
 
         $css = $force ? 'col-sm-auto' : 'col-sm';
@@ -187,15 +196,15 @@ class PurchasesHeaderHTML
             . self::renderField($i18n, $model, 'cifnif')
             . '</div>'
             . '<div class="form-row">'
-            . self::renderNewFields($i18n, $model)
-            . '</div>'
-            . '<div class="form-row">'
             . self::renderField($i18n, $model, 'coddivisa')
             . self::renderField($i18n, $model, 'tasaconv')
             . '</div>'
             . '<div class="form-row">'
             . self::renderField($i18n, $model, 'femail')
             . self::renderField($i18n, $model, 'user')
+            . '</div>'
+            . '<div class="form-row">'
+            . self::renderNewFields($i18n, $model)
             . '</div>'
             . '</div>'
             . '<div class="modal-footer">'
@@ -215,8 +224,7 @@ class PurchasesHeaderHTML
     {
         $attributes = $model->editable ? 'name="nombre" required=""' : 'disabled=""';
         return '<div class="col-sm">'
-            . '<div class="form-group">'
-            . $i18n->trans('business-name')
+            . '<div class="form-group">' . $i18n->trans('business-name')
             . '<input type="text" ' . $attributes . ' value="' . $model->nombre . '" class="form-control" maxlength="100" autocomplete="off" />'
             . '</div>'
             . '</div>';
@@ -225,9 +233,8 @@ class PurchasesHeaderHTML
     private static function numproveedor(Translator $i18n, PurchaseDocument $model): string
     {
         $attributes = $model->editable ? 'name="numproveedor"' : 'disabled=""';
-        return empty($model->codproveedor) ? '' : '<div class="col-sm">'
-            . '<div class="form-group">'
-            . $i18n->trans('numsupplier')
+        return empty($model->codproveedor) ? '' : '<div class="col-sm-3 col-md-2 col-lg">'
+            . '<div class="form-group">' . $i18n->trans('numsupplier')
             . '<input type="text" ' . $attributes . ' value="' . $model->numproveedor . '" class="form-control" maxlength="50"'
             . ' placeholder="' . $i18n->trans('optional') . '" />'
             . '</div>'
