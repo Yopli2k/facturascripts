@@ -33,17 +33,18 @@ trait CommonLineHTML
     {
         $options = [];
         foreach (Impuestos::all() as $imp) {
-            $options[] = $line->iva == $imp->iva ?
-                '<option value="' . $imp->iva . '" selected="">' . $imp->descripcion . '</option>' :
-                '<option value="' . $imp->iva . '">' . $imp->descripcion . '</option>';
+            $options[] = $line->codimpuesto == $imp->codimpuesto ?
+                '<option value="' . $imp->codimpuesto . '" selected="">' . $imp->descripcion . '</option>' :
+                '<option value="' . $imp->codimpuesto . '">' . $imp->descripcion . '</option>';
         }
 
         $attributes = $model->editable && false === $line->suplido ?
-            'name="iva_' . $idlinea . '" onchange="return ' . $jsFunc . '(\'recalculate-line\', \'0\');"' :
+            'name="codimpuesto_' . $idlinea . '" onchange="return ' . $jsFunc . '(\'recalculate-line\', \'0\');"' :
             'disabled=""';
         return '<div class="col-sm col-lg-1 order-6">'
             . '<div class="d-lg-none mt-3 small">' . $i18n->trans('tax') . '</div>'
             . '<select ' . $attributes . ' class="form-control form-control-sm border-0">' . implode('', $options) . '</select>'
+            . '<input type="hidden" name="iva_' . $idlinea . '" value="' . $line->iva . '"/>'
             . '</div>';
     }
 
@@ -67,7 +68,7 @@ trait CommonLineHTML
     private static function dtopor(Translator $i18n, string $idlinea, BusinessDocumentLine $line, TransformerDocument $model, string $jsFunc): string
     {
         $attributes = $model->editable ?
-            'name="dtopor_' . $idlinea . '" min="0" max="100" step="1" onkeyup="return ' . $jsFunc . '(\'recalculate-line\', \'0\');"' :
+            'name="dtopor_' . $idlinea . '" min="0" max="100" step="1" onkeyup="return ' . $jsFunc . '(\'recalculate-line\', \'0\', event);"' :
             'disabled=""';
         return '<div class="col-sm col-lg-1 order-5">'
             . '<div class="d-lg-none mt-3 small">' . $i18n->trans('percentage-discount') . '</div>'
@@ -78,7 +79,7 @@ trait CommonLineHTML
     private static function dtopor2(Translator $i18n, string $idlinea, BusinessDocumentLine $line, TransformerDocument $model, string $field, string $jsFunc): string
     {
         $attributes = $model->editable ?
-            'name="' . $field . '_' . $idlinea . '" min="0" max="100" step="1" onkeyup="return ' . $jsFunc . '(\'recalculate-line\', \'0\');"' :
+            'name="' . $field . '_' . $idlinea . '" min="0" max="100" step="1" onkeyup="return ' . $jsFunc . '(\'recalculate-line\', \'0\', event);"' :
             'disabled=""';
         return '<div class="col">'
             . '<div class="mb-2">' . $i18n->trans('percentage-discount') . ' 2'
@@ -101,7 +102,7 @@ trait CommonLineHTML
         }
 
         $attributes = $model->editable ?
-            'name="irpf_' . $idlinea . '" onkeyup="return ' . $jsFunc . '(\'recalculate-line\', \'0\');"' :
+            'name="irpf_' . $idlinea . '" onkeyup="return ' . $jsFunc . '(\'recalculate-line\', \'0\', event);"' :
             'disabled=""';
         return '<div class="col">'
             . '<div class="mb-2">' . $i18n->trans('retention')
@@ -126,7 +127,7 @@ trait CommonLineHTML
         }
 
         $attributes = $model->editable ?
-            'name="recargo_' . $idlinea . '" min="0" max="100" step="1" onkeyup="return ' . $jsFunc . '(\'recalculate-line\', \'0\');"' :
+            'name="recargo_' . $idlinea . '" min="0" max="100" step="1" onkeyup="return ' . $jsFunc . '(\'recalculate-line\', \'0\', event);"' :
             'disabled=""';
         return '<div class="col">'
             . '<div class="mb-2">' . $i18n->trans('percentage-surcharge')
@@ -175,7 +176,7 @@ trait CommonLineHTML
     private static function suplido(Translator $i18n, string $idlinea, BusinessDocumentLine $line, TransformerDocument $model, string $jsFunc): string
     {
         $attributes = $model->editable ?
-            'name="suplido_' . $idlinea . '" onkeyup="return ' . $jsFunc . '(\'recalculate-line\', \'0\');"' :
+            'name="suplido_' . $idlinea . '" onkeyup="return ' . $jsFunc . '(\'recalculate-line\', \'0\', event);"' :
             'disabled=""';
         $options = $line->suplido ?
             ['<option value="0">' . $i18n->trans('no') . '</option>', '<option value="1" selected="">' . $i18n->trans('yes') . '</option>'] :

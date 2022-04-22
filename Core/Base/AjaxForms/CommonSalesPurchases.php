@@ -65,11 +65,12 @@ trait CommonSalesPurchases
         // more than one
         return '<div class="col-sm-auto">'
             . '<div class="form-group">'
-            . '<button class="btn btn-block btn-info" type="button" data-toggle="modal" data-target="#documentsModal">'
-            . '<i class="fas fa-forward fa-fw" aria-hidden="true"></i> ' . count($children) . ' </button>'
+            . '<button class="btn btn-block btn-info" type="button" title="' . $i18n->trans('documents-generated')
+            . '" data-toggle="modal" data-target="#childrenModal"><i class="fas fa-forward fa-fw" aria-hidden="true"></i> '
+            . count($children) . ' </button>'
             . '</div>'
             . '</div>'
-            . self::modalDocList($i18n, $children);
+            . self::modalDocList($i18n, $children, 'documents-generated', 'childrenModal');
     }
 
     protected static function codalmacen(Translator $i18n, BusinessDocument $model): string
@@ -187,7 +188,7 @@ trait CommonSalesPurchases
     protected static function dtopor1(Translator $i18n, BusinessDocument $model, string $jsName): string
     {
         $attributes = $model->editable ?
-            'max="100" min="0" name="dtopor1" required="" step="any" onchange="return ' . $jsName . '(\'recalculate\', \'0\');"' :
+            'max="100" min="0" name="dtopor1" required="" step="any" onchange="return ' . $jsName . '(\'recalculate\', \'0\', event);"' :
             'disabled=""';
         return empty($model->netosindto) ? '' : '<div class="col-sm"><div class="form-group">' . $i18n->trans('global-dto')
             . '<div class="input-group">'
@@ -199,7 +200,7 @@ trait CommonSalesPurchases
     protected static function dtopor2(Translator $i18n, BusinessDocument $model, string $jsName): string
     {
         $attributes = $model->editable ?
-            'max="100" min="0" name="dtopor2" required="" step="any" onchange="return ' . $jsName . '(\'recalculate\', \'0\');"' :
+            'max="100" min="0" name="dtopor2" required="" step="any" onchange="return ' . $jsName . '(\'recalculate\', \'0\', event);"' :
             'disabled=""';
         return empty($model->dtopor1) ? '' : '<div class="col-sm-2 col-md"><div class="form-group">' . $i18n->trans('global-dto-2')
             . '<div class="input-group">'
@@ -208,6 +209,15 @@ trait CommonSalesPurchases
             . '</div>'
             . '<input type="number" ' . $attributes . ' value="' . $model->dtopor2 . '" class="form-control"/>'
             . '</div></div></div>';
+    }
+
+    private static function email(Translator $i18n, BusinessDocument $model): string
+    {
+        return empty($model->femail) ? '' : '<div class="col-sm-auto">'
+            . '<div class="form-group">'
+            . '<button class="btn btn-outline-info" type="button" title="' . $i18n->trans('email-sent')
+            . '" data-toggle="modal" data-target="#headerModal"><i class="fas fa-envelope fa-fw" aria-hidden="true"></i> '
+            . $model->femail . ' </button></div></div>';
     }
 
     protected static function fastLineInput(Translator $i18n, BusinessDocument $model, string $jsName): string
@@ -327,28 +337,27 @@ trait CommonSalesPurchases
         return false === $status->editable && empty($status->actualizastock) ? ' text-danger' : '';
     }
 
-    public static function modalDocList(Translator $i18n, array $documents): string
+    public static function modalDocList(Translator $i18n, array $documents, string $title, string $id): string
     {
         $list = '';
         foreach ($documents as $doc) {
-            $list .= '<tr>';
-            $list .= '<td><a href="' . $doc->url() . '">' . $i18n->trans($doc->modelClassName()) . ' ' . $doc->codigo . '</a></td>';
-            $list .= '<td>' . $doc->observaciones . '</td>';
-            $list .= '<td class="text-right">' . ToolBox::coins()::format($doc->total) . '</td>';
-            $list .= '<td class="text-right">' . $doc->fecha . ' ' . $doc->hora . '</td>';
-            $list .= '</tr>';
+            $list .= '<tr>'
+                . '<td><a href="' . $doc->url() . '">' . $i18n->trans($doc->modelClassName()) . ' ' . $doc->codigo . '</a></td>'
+                . '<td>' . $doc->observaciones . '</td>'
+                . '<td class="text-right text-nowrap">' . ToolBox::coins()::format($doc->total) . '</td>'
+                . '<td class="text-right text-nowrap">' . $doc->fecha . ' ' . $doc->hora . '</td>'
+                . '</tr>';
         }
 
-        return '<div class="modal fade" tabindex="-1" id="documentsModal">'
+        return '<div class="modal fade" tabindex="-1" id="' . $id . '">'
             . '<div class="modal-dialog modal-xl">'
             . '<div class="modal-content">'
             . '<div class="modal-header">'
-            . '<h5 class="modal-title">' . $i18n->trans('documents-generated') . '</h5>'
+            . '<h5 class="modal-title">' . $i18n->trans($title) . '</h5>'
             . '<button type="button" class="close" data-dismiss="modal" aria-label="' . $i18n->trans('close') . '">'
             . '<span aria-hidden="true">&times;</span>'
             . '</button>'
             . '</div>'
-            . '<div class="modal-body"></div>'
             . '<div class="table-responsive">'
             . '<table class="table table-hover mb-0">'
             . '<thead>'
@@ -446,11 +455,12 @@ trait CommonSalesPurchases
         // more than one
         return '<div class="col-sm-auto">'
             . '<div class="form-group">'
-            . '<button class="btn btn-block btn-warning" type="button" data-toggle="modal" data-target="#documentsModal">'
-            . '<i class="fas fa-backward fa-fw" aria-hidden="true"></i> ' . count($parents) . ' </button>'
+            . '<button class="btn btn-block btn-warning" type="button" title="' . $i18n->trans('previous-documents')
+            . '" data-toggle="modal" data-target="#parentsModal"><i class="fas fa-backward fa-fw" aria-hidden="true"></i> '
+            . count($parents) . ' </button>'
             . '</div>'
             . '</div>'
-            . self::modalDocList($i18n, $parents);
+            . self::modalDocList($i18n, $parents, 'previous-documents', 'parentsModal');
     }
 
     protected static function productBtn(Translator $i18n, BusinessDocument $model): string
@@ -489,6 +499,18 @@ trait CommonSalesPurchases
             . '<input type="number" ' . $attributes . ' value="' . $model->tasaconv . '" class="form-control"/>'
             . '</div>'
             . '</div>';
+    }
+
+    protected static function total(Translator $i18n, BusinessDocument $model, string $jsName): string
+    {
+        return empty($model->total) ? '' : '<div class="col-sm"><div class="form-group">' . $i18n->trans('total')
+            . '<div class="input-group">'
+            . '<input type="text" value="' . number_format($model->total, FS_NF0, FS_NF1, '')
+            . '" class="form-control" disabled=""/>'
+            . '<div class="input-group-append"><button class="btn btn-primary btn-spin-action" onclick="return ' . $jsName
+            . '(\'save-doc\', \'0\');" title="' . $i18n->trans('save') . '" type="button">'
+            . '<i class="fas fa-save fa-fw"></i></button></div>'
+            . '</div></div></div>';
     }
 
     protected static function user(Translator $i18n, BusinessDocument $model): string

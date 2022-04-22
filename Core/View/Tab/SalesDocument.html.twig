@@ -104,14 +104,23 @@
             if (Array.isArray(data.messages)) {
                 data.messages.forEach(item => alert(item.message));
             }
-            if (document.forms['salesForm']['action'].value === 'set-customer') {
-                $("#findProductInput").focus();
-            } else if (document.forms['salesForm']['action'].value === 'new-line') {
-                $(".doc-line-desc:last").focus();
-            } else if (document.forms['salesForm']['action'].value === 'fast-line') {
-                document.forms['salesForm']['fastli'].focus();
-            } else if (document.forms['salesForm']['action'].value === 'fast-product') {
-                $(".doc-line-qty:last").select();
+            switch (document.forms['salesForm']['action'].value) {
+                case 'add-product':
+                case 'fast-product':
+                    $(".doc-line-qty:last").select();
+                    break;
+
+                case 'fast-line':
+                    document.forms['salesForm']['fastli'].focus();
+                    break;
+
+                case 'new-line':
+                    $(".doc-line-desc:last").focus();
+                    break;
+
+                case 'set-customer':
+                    $("#findProductInput").focus();
+                    break;
             }
 
             findProduct();
@@ -124,7 +133,12 @@
         return false;
     }
 
-    async function salesFormActionWait(action, selectedLine) {
+    async function salesFormActionWait(action, selectedLine, event) {
+        if (event.keyCode === 9) {
+            // si se pulsa tabulador no hacemos nada
+            return false;
+        }
+
         animateSpinner('add');
 
         // usamos un contador y un temporizador para solamente procesar la última llamada

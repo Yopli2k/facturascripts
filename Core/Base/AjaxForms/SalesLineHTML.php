@@ -23,6 +23,7 @@ use FacturaScripts\Core\Base\Contract\SalesLineModInterface;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use FacturaScripts\Core\Base\ToolBox;
 use FacturaScripts\Core\Base\Translator;
+use FacturaScripts\Core\DataSrc\Impuestos;
 use FacturaScripts\Core\Model\Base\SalesDocument;
 use FacturaScripts\Core\Model\Base\SalesDocumentLine;
 use FacturaScripts\Dinamic\Model\Stock;
@@ -188,10 +189,21 @@ class SalesLineHTML
         $line->dtopor2 = (float)$formData['dtopor2_' . $id];
         $line->descripcion = $formData['descripcion_' . $id];
         $line->irpf = (float)($formData['irpf_' . $id] ?? '0');
-        $line->iva = (float)($formData['iva_' . $id] ?? '0');
-        $line->recargo = (float)($formData['recargo_' . $id] ?? '0');
         $line->suplido = (bool)($formData['suplido_' . $id] ?? '0');
         $line->pvpunitario = (float)$formData['pvpunitario_' . $id];
+
+        // ¿Cambio de impuesto?
+        if (isset($formData['codimpuesto_' . $id]) && $formData['codimpuesto_' . $id] !== $line->codimpuesto) {
+            $impuesto = Impuestos::get($formData['codimpuesto_' . $id]);
+            $line->codimpuesto = $impuesto->codimpuesto;
+            $line->iva = $impuesto->iva;
+            if ($line->recargo) {
+                // si la línea ya tenía recargo, le asignamos el nuevo
+                $line->recargo = $impuesto->recargo;
+            }
+        } else {
+            $line->recargo = (float)($formData['recargo_' . $id] ?? '0');
+        }
 
         // mods
         foreach (self::$mods as $mod) {
@@ -216,7 +228,7 @@ class SalesLineHTML
             . '<div class="input-group input-group-sm">'
             . self::cantidadServido($i18n, $line, $model)
             . '<input type="number" name="cantidad_' . $idlinea . '" value="' . $line->cantidad
-            . '" class="form-control border-0 doc-line-qty" onkeyup="return ' . $jsFunc . '(\'recalculate-line\', \'0\');"/>'
+            . '" class="form-control border-0 doc-line-qty" onkeyup="return ' . $jsFunc . '(\'recalculate-line\', \'0\', event);"/>'
             . self::cantidadStock($i18n, $line, $model)
             . '</div>'
             . '</div>';
@@ -306,7 +318,7 @@ class SalesLineHTML
                 . '</div>';
         }
 
-        $attributes = 'name="pvpunitario_' . $idlinea . '" onkeyup="return ' . $jsFunc . '(\'recalculate-line\', \'0\');"';
+        $attributes = 'name="pvpunitario_' . $idlinea . '" onkeyup="return ' . $jsFunc . '(\'recalculate-line\', \'0\', event);"';
         return '<div class="col-sm col-lg-1 order-4">'
             . '<span class="d-lg-none small">' . $i18n->trans('price') . '</span>'
             . '<input type="number" ' . $attributes . ' value="' . $line->pvpunitario . '" class="form-control form-control-sm border-0"/>'

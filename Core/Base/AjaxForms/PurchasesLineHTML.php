@@ -23,6 +23,7 @@ use FacturaScripts\Core\Base\Contract\PurchasesLineModInterface;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use FacturaScripts\Core\Base\ToolBox;
 use FacturaScripts\Core\Base\Translator;
+use FacturaScripts\Core\DataSrc\Impuestos;
 use FacturaScripts\Core\Model\Base\PurchaseDocument;
 use FacturaScripts\Core\Model\Base\PurchaseDocumentLine;
 use FacturaScripts\Dinamic\Model\Variante;
@@ -187,10 +188,21 @@ class PurchasesLineHTML
         $line->dtopor2 = (float)$formData['dtopor2_' . $id];
         $line->descripcion = $formData['descripcion_' . $id];
         $line->irpf = (float)($formData['irpf_' . $id] ?? '0');
-        $line->iva = (float)($formData['iva_' . $id] ?? '0');
-        $line->recargo = (float)($formData['recargo_' . $id] ?? '0');
         $line->suplido = (bool)($formData['suplido_' . $id] ?? '0');
         $line->pvpunitario = (float)$formData['pvpunitario_' . $id];
+
+        // ¿Cambio de impuesto?
+        if (isset($formData['codimpuesto_' . $id]) && $formData['codimpuesto_' . $id] !== $line->codimpuesto) {
+            $impuesto = Impuestos::get($formData['codimpuesto_' . $id]);
+            $line->codimpuesto = $impuesto->codimpuesto;
+            $line->iva = $impuesto->iva;
+            if ($line->recargo) {
+                // si la línea ya tenía recargo, le asignamos el nuevo
+                $line->recargo = $impuesto->recargo;
+            }
+        } else {
+            $line->recargo = (float)($formData['recargo_' . $id] ?? '0');
+        }
 
         // mods
         foreach (self::$mods as $mod) {
@@ -210,7 +222,7 @@ class PurchasesLineHTML
         return '<div class="col-sm-2 col-lg-1 order-3">'
             . '<div class="d-lg-none mt-2 small">' . $i18n->trans('quantity') . '</div>'
             . '<input type="number" name="cantidad_' . $idlinea . '" value="' . $line->cantidad
-            . '" class="form-control form-control-sm border-0 doc-line-qty" onkeyup="return ' . $jsFunc . '(\'recalculate-line\', \'0\');"/>'
+            . '" class="form-control form-control-sm border-0 doc-line-qty" onkeyup="return ' . $jsFunc . '(\'recalculate-line\', \'0\', event);"/>'
             . '</div>';
     }
 
@@ -239,7 +251,7 @@ class PurchasesLineHTML
                 . '</div>';
         }
 
-        $attributes = 'name="pvpunitario_' . $idlinea . '" onkeyup="return ' . $jsFunc . '(\'recalculate-line\', \'0\');"';
+        $attributes = 'name="pvpunitario_' . $idlinea . '" onkeyup="return ' . $jsFunc . '(\'recalculate-line\', \'0\', event);"';
         return '<div class="col-sm col-lg-1 order-4">'
             . '<div class="d-lg-none mt-2 small">' . $i18n->trans('price') . '</div>'
             . '<input type="number" ' . $attributes . ' value="' . $line->pvpunitario . '" class="form-control form-control-sm border-0"/>'
