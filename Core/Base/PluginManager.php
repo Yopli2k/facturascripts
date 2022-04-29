@@ -156,6 +156,12 @@ final class PluginManager
                 continue;
             }
 
+            // check php version
+            if (version_compare(PHP_VERSION, $plugin['min_php']) < 0) {
+                ToolBox::i18nLog()->warning('plugin-phpversion-error', ['%pluginName%' => $pluginName, '%php%' => $plugin['min_php']]);
+                return false;
+            }
+
             if ($this->checkRequire($plugin['require'])) {
                 $plugin['enabled'] = true;
                 self::$enabledPlugins[] = $plugin;
@@ -375,37 +381,44 @@ final class PluginManager
             'compatible' => false,
             'description' => 'Incompatible',
             'enabled' => false,
+            'min_php' => 7.2,
             'min_version' => 0.0,
             'name' => $pluginName,
             'require' => [],
             'version' => 1
         ];
-
         $ini = parse_ini_string($iniContent);
-        if ($ini !== false) {
-            foreach (['name', 'version', 'description', 'min_version'] as $key) {
-                $info[$key] = $ini[$key] ?? $info[$key];
-            }
-
-            if (isset($ini['require'])) {
-                $info['require'] = explode(',', $ini['require']);
-            }
-
-            if ($info['min_version'] >= 2018 && $info['min_version'] <= self::CORE_VERSION) {
-                $info['compatible'] = true;
-                $info['description'] = ('Incompatible' === $info['description']) ? ToolBox::i18n()->trans('compatible') : $info['description'];
-            } else {
-                $info['description'] = ToolBox::i18n()->trans('incompatible-with-facturascripts', ['%version%' => self::CORE_VERSION]);
-            }
-
-            $info['enabled'] = in_array($info['name'], $this->enabledPlugins());
+        if ($ini === false) {
+            return $info;
         }
 
+        $info['name'] = strip_tags($ini['name'] ?? $info['name']);
+        $info['version'] = floatval($ini['version'] ?? $info['version']);
+        $info['description'] = strip_tags($ini['description'] ?? $info['description']);
+        $info['min_php'] = floatval($ini['min_php'] ?? $info['min_php']);
+
+        $info['min_version'] = floatval($ini['min_version'] ?? $info['min_version']);
+        if ($info['min_version'] <= self::CORE_VERSION && $info['min_version'] >= 2020) {
+            $info['compatible'] = true;
+        } else {
+            $info['description'] = ToolBox::i18n()->trans('incompatible-with-facturascripts', ['%version%' => self::CORE_VERSION]);
+        }
+
+        if (isset($ini['require'])) {
+            foreach (explode(',', $ini['require']) as $req) {
+                $req = trim($req);
+                if (!empty($req)) {
+                    $info['require'][] = $req;
+                }
+            }
+        }
+
+        $info['enabled'] = in_array($info['name'], $this->enabledPlugins());
         return $info;
     }
 
     /**
-     * Returns an array with the list of plugins in the plugin.list file.
+     * Returns an array with the list of plugins in the plugin.json file.
      *
      * @return array
      */
