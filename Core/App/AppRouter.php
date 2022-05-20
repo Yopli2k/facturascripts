@@ -206,8 +206,10 @@ final class AppRouter
             ob_end_flush();
         }
 
-        // force to download svg files to prevent XSS attacks
-        if (strpos($filePath, '.svg') !== false) {
+        // force to download svg, xml and xsig files to prevent XSS attacks
+        $info = pathinfo($filePath);
+        $extension = strtolower($info['extension']);
+        if (in_array($extension, ['svg', 'xml', 'xsig'])) {
             header('Content-Disposition: attachment; filename="' . basename($filePath) . '"');
         }
 
@@ -223,12 +225,18 @@ final class AppRouter
      */
     private function getMime(string $filePath): string
     {
-        if ('.css' === substr($filePath, -4)) {
-            return 'text/css';
-        }
+        $info = pathinfo($filePath);
+        $extension = strtolower($info['extension']);
+        switch ($extension) {
+            case 'css':
+                return 'text/css';
 
-        if ('.js' === substr($filePath, -3)) {
-            return 'application/javascript';
+            case 'js':
+                return 'application/javascript';
+
+            case 'xml':
+            case 'xsig':
+                return 'text/xml';
         }
 
         return mime_content_type($filePath);

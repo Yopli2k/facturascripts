@@ -20,6 +20,7 @@
 namespace FacturaScripts\Core\Base\AjaxForms;
 
 use FacturaScripts\Core\Base\Calculator;
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use FacturaScripts\Core\DataSrc\Series;
 use FacturaScripts\Core\Lib\ExtendedController\BaseView;
 use FacturaScripts\Core\Lib\ExtendedController\DocFilesTrait;
@@ -85,7 +86,7 @@ abstract class SalesController extends PanelController
         return '<div id="salesFormHeader">' . SalesHeaderHTML::render($model) . '</div>'
             . '<div id="salesFormLines">' . SalesLineHTML::render($lines, $model) . '</div>'
             . '<div id="salesFormFooter">' . SalesFooterHTML::render($model) . '</div>'
-            . SalesModalHTML::render($model, $this->url());
+            . SalesModalHTML::render($model, $this->url(), $this->user, $this->permissions);
     }
 
     public function series(): array
@@ -100,7 +101,11 @@ abstract class SalesController extends PanelController
         $list = [];
         $variante = new Variante();
         $query = (string)$this->request->get('term');
-        foreach ($variante->codeModelSearch($query, 'referencia') as $value) {
+        $where = [
+            new DataBaseWhere('p.bloqueado', 0),
+            new DataBaseWhere('p.sevende', 1)
+        ];
+        foreach ($variante->codeModelSearch($query, 'referencia', $where) as $value) {
             $list[] = [
                 'key' => $this->toolBox()->utils()->fixHtml($value->code),
                 'value' => $this->toolBox()->utils()->fixHtml($value->description)
@@ -227,7 +232,14 @@ abstract class SalesController extends PanelController
         $customer = new Cliente();
         $list = [];
         $term = $this->request->get('term');
-        foreach ($customer->codeModelSearch($term) as $item) {
+
+        $where = [];
+        if ($this->permissions->onlyOwnerData) {
+            $where[] = new DataBaseWhere('codagente', $this->user->codagente);
+            $where[] = new DataBaseWhere('codagente', null, 'IS NOT');
+        }
+
+        foreach ($customer->codeModelSearch($term, '', $where) as $item) {
             $list[$item->code] = $item->code . ' | ' . $this->toolBox()->utils()->fixHtml($item->description);
         }
         $this->response->setContent(json_encode($list));
