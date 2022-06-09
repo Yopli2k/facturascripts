@@ -105,6 +105,13 @@ class DocumentStitcher extends Controller
         parent::privateCore($response, $user, $permissions);
         $this->codes = $this->getCodes();
         $this->modelName = $this->getModelName();
+
+        // no se pueden agrupar o partir facturas
+        if (in_array($this->modelName, ['FacturaCliente', 'FacturaProveedor'])) {
+            $this->redirect('List' . $this->modelName);
+            return;
+        }
+
         $this->loadDocuments();
         $this->loadMoreDocuments();
 
