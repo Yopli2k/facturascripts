@@ -20,6 +20,7 @@
 namespace FacturaScripts\Core\Model;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Dinamic\Lib\CustomerRiskTools;
 use FacturaScripts\Dinamic\Model\Cliente as DinCliente;
 use FacturaScripts\Dinamic\Model\FacturaCliente as DinFacturaCliente;
 use FacturaScripts\Dinamic\Model\PagoCliente as DinPagoCliente;
@@ -34,14 +35,10 @@ class ReciboCliente extends Base\Receipt
 
     use Base\ModelTrait;
 
-    /**
-     * @var string
-     */
+    /** @var string */
     public $codcliente;
 
-    /**
-     * @var float
-     */
+    /** @var float */
     public $gastos;
 
     public function clear()
@@ -150,5 +147,37 @@ class ReciboCliente extends Base\Receipt
         $pago->importe = $this->pagado ? $this->importe : 0 - $this->importe;
         $pago->nick = $this->nick;
         return $pago->save();
+    }
+
+    protected function onDelete()
+    {
+        $this->updateCustomerRisk();
+        parent::onDelete();
+    }
+
+    protected function onInsert()
+    {
+        $this->updateCustomerRisk();
+        parent::onInsert();
+    }
+
+    protected function onUpdate()
+    {
+        $this->updateCustomerRisk();
+        parent::onUpdate();
+    }
+
+    /**
+     * Update customer risk when a receipt is created, updated or deleted.
+     *
+     * @return void
+     */
+    protected function updateCustomerRisk()
+    {
+        $customer = new DinCliente();
+        if ($customer->loadFromCode($this->codcliente)) {
+            $customer->riesgoalcanzado = CustomerRiskTools::getCurrent($customer->primaryColumnValue());
+            $customer->save();
+        }
     }
 }
