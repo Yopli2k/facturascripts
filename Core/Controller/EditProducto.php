@@ -23,8 +23,7 @@ use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use FacturaScripts\Core\DataSrc\Almacenes;
 use FacturaScripts\Core\Lib\ExtendedController\BaseView;
 use FacturaScripts\Core\Lib\ExtendedController\EditController;
-use FacturaScripts\Core\Model\Base\ProductImageFilesTrait;
-use FacturaScripts\Dinamic\Model\Almacen;
+use FacturaScripts\Core\Lib\ExtendedController\ProductImagesTrait;
 use FacturaScripts\Dinamic\Model\Atributo;
 
 /**
@@ -37,8 +36,6 @@ use FacturaScripts\Dinamic\Model\Atributo;
 class EditProducto extends EditController
 {
     use ProductImagesTrait;
-
-    use ProductImageFilesTrait;
 
     public function getModelClassName(): string
     {
@@ -64,7 +61,6 @@ class EditProducto extends EditController
         $this->createViewsProductImages();
         $this->createViewsStock();
         $this->createViewsSuppliers();
-        $this->createViewEmployeeFiles();
     }
 
     protected function createViewsStock(string $viewName = 'EditStock')
@@ -193,7 +189,7 @@ class EditProducto extends EditController
                 $orderBy = ['referencia' => 'ASC', 'id' => 'ASC'];
                 $view->loadData('', $where, $orderBy);
                 break;
- 
+
             case 'EditVariante':
                 $view->loadData('', $where, ['idvariante' => 'DESC']);
                 $this->loadCustomAttributeWidgets($viewName);
