@@ -27,7 +27,7 @@ use Symfony\Component\HttpFoundation\Response;
  * Controller to edit data through the vertical panel
  *
  * @author Carlos García Gómez  <carlos@facturascripts.com>
- * @author Artex Trading sa     <jcuello@artextrading.com>
+ * @author Jose Antonio Cuello Principal <yopli2000@gmail.com>
  */
 abstract class PanelController extends BaseController
 {
@@ -113,7 +113,7 @@ abstract class PanelController extends BaseController
     }
 
     /**
-     * Sets the tabs position, by default is set to 'left', also supported 'bottom' and 'top'.
+     * Sets the tabs position, by default is set to 'left', also supported 'bottom', 'top' and 'left-bottom.
      *
      * @param string $position
      */
@@ -123,6 +123,10 @@ abstract class PanelController extends BaseController
         switch ($this->tabsPosition) {
             case 'bottom':
                 $this->setTemplate('Master/PanelControllerBottom');
+                break;
+
+            case 'left-bottom':
+                $this->setTemplate('Master/PanelControllerLeftBottom');
                 break;
 
             case 'top':

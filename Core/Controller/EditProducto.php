@@ -20,6 +20,7 @@
 namespace FacturaScripts\Core\Controller;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\DataSrc\Almacenes;
 use FacturaScripts\Core\Lib\ExtendedController\BaseView;
 use FacturaScripts\Core\Lib\ExtendedController\EditController;
 use FacturaScripts\Core\Model\Base\ProductImageFilesTrait;
@@ -30,11 +31,12 @@ use FacturaScripts\Dinamic\Model\Atributo;
  * Controller to edit a single item from the EditProducto model
  *
  * @author Carlos García Gómez          <carlos@facturascripts.com>
- * @author Jose Antonio Cuello          <yopli2000@gmail.com>
+ * @author Jose Antonio Cuello Principal <yopli2000@gmail.com>
  * @author Fco. Antonio Moreno Pérez    <famphuelva@gmail.com>
  */
 class EditProducto extends EditController
 {
+    use ProductImagesTrait;
 
     use ProductImageFilesTrait;
 
@@ -59,6 +61,7 @@ class EditProducto extends EditController
     {
         parent::createViews();
         $this->createViewsVariants();
+        $this->createViewsProductImages();
         $this->createViewsStock();
         $this->createViewsSuppliers();
         $this->createViewEmployeeFiles();
@@ -68,8 +71,8 @@ class EditProducto extends EditController
     {
         $this->addEditListView($viewName, 'Stock', 'stock', 'fas fa-dolly');
 
-        $almacen = new Almacen();
-        if ($almacen->count() <= 1) {
+        // si solamente hay un almacén, ocultamos la columna
+        if (count(Almacenes::all()) <= 1) {
             $this->views[$viewName]->disableColumn('warehouse');
         }
     }
@@ -108,17 +111,11 @@ class EditProducto extends EditController
     protected function execPreviousAction($action)
     {
         switch ($action) {
-            case 'add-file':
-                return $this->addFileAction();
+            case 'add-image':
+                return $this->addImageAction();
 
-            case 'delete-file':
-                return $this->deleteFileAction();
-
-            case 'edit-file':
-                return $this->editFileAction();
-
-            case 'unlink-file':
-                return $this->unlinkFileAction();
+            case 'delete-image':
+                return $this->deleteImageAction();
         }
 
         return parent::execPreviousAction($action);
@@ -191,12 +188,12 @@ class EditProducto extends EditController
                 $this->loadCustomReferenceWidget('EditStock');
                 break;
 
-            case 'EditProductImage':
-                $where = [ new DataBaseWhere('img.idproducto', $idproducto) ];
-                $order = ['img.referencia' => 'ASC', 'rel.creationdate' => 'DESC'];
-                $view->loadData('', $where, $order);
+            case 'EditProductoImagen':
+                $where = [new DataBaseWhere('idproducto', $idproducto)];
+                $orderBy = ['referencia' => 'ASC', 'id' => 'ASC'];
+                $view->loadData('', $where, $orderBy);
                 break;
-
+ 
             case 'EditVariante':
                 $view->loadData('', $where, ['idvariante' => 'DESC']);
                 $this->loadCustomAttributeWidgets($viewName);
