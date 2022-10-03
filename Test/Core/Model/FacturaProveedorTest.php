@@ -20,6 +20,8 @@
 namespace FacturaScripts\Test\Core\Model;
 
 use FacturaScripts\Core\Base\Calculator;
+use FacturaScripts\Core\DataSrc\Retenciones;
+use FacturaScripts\Core\Lib\RegimenIVA;
 use FacturaScripts\Core\Model\FacturaProveedor;
 use FacturaScripts\Test\Core\DefaultSettingsTrait;
 use FacturaScripts\Test\Core\LogErrorsTrait;
@@ -190,7 +192,7 @@ final class FacturaProveedorTest extends TestCase
         $this->assertTrue($supplier->delete(), 'cant-delete-supplier');
     }
 
-    public function cantUpdateOrDeleteNonEditableInvoice()
+    public function testCantUpdateOrDeleteNonEditableInvoice()
     {
         // creamos el proveedor
         $supplier = $this->getRandomSupplier();
@@ -213,10 +215,12 @@ final class FacturaProveedorTest extends TestCase
 
         // asignamos un estado no editable
         $changed = false;
+        $previous = $invoice->idestado;
         foreach ($invoice->getAvailableStatus() as $status) {
             if (false === $status->editable) {
                 $invoice->idestado = $status->idestado;
                 $changed = true;
+                break;
             }
         }
         $this->assertTrue($changed, 'non-editable-status-not-found');
@@ -226,6 +230,132 @@ final class FacturaProveedorTest extends TestCase
         $invoice->dtopor1 = 50;
         $this->assertFalse(Calculator::calculate($invoice, $lines, true), 'can-update-non-editable-invoice');
         $this->assertFalse($invoice->delete(), 'can-delete-non-editable-invoice');
+
+        // volvemos al estado anterior
+        $invoice->idestado = $previous;
+        $this->assertTrue($invoice->save(), 'cant-update-invoice');
+
+        // eliminamos
+        $this->assertTrue($invoice->delete(), 'cant-delete-invoice');
+        $this->assertTrue($supplier->delete(), 'cant-delete-supplier');
+    }
+
+    public function testCreateInvoiceWithRetention()
+    {
+        // creamos un proveedor con retención
+        $supplier = $this->getRandomSupplier();
+        foreach (Retenciones::all() as $retention) {
+            $supplier->codretencion = $retention->codretencion;
+            break;
+        }
+        $this->assertTrue($supplier->save(), 'cant-create-supplier');
+
+        // creamos la factura
+        $invoice = new FacturaProveedor();
+        $invoice->setSubject($supplier);
+        $this->assertTrue($invoice->save(), 'cant-create-invoice');
+
+        // añadimos una línea
+        $firstLine = $invoice->getNewLine();
+        $firstLine->cantidad = 2;
+        $firstLine->pvpunitario = self::PRODUCT1_COST;
+        $this->assertTrue($firstLine->save(), 'cant-save-first-line');
+
+        // recalculamos
+        $lines = $invoice->getLines();
+        $this->assertTrue(Calculator::calculate($invoice, $lines, true), 'cant-update-invoice');
+        $this->assertGreaterThan(0, $invoice->totalirpf, 'bad-totalirpf');
+
+        // comprobamos el asiento
+        $entry = $invoice->getAccountingEntry();
+        $this->assertTrue($entry->exists(), 'accounting-entry-not-found');
+        $this->assertEquals($invoice->total, $entry->importe, 'accounting-entry-bad-importe');
+
+        // comprobamos que el asiento tiene una línea cuyo haber es el totalirpf de la factura
+        $found = false;
+        foreach ($entry->getLines() as $line) {
+            if ($line->haber == $invoice->totalirpf) {
+                $found = true;
+                break;
+            }
+        }
+        $this->assertTrue($found, 'accounting-entry-without-retention-line');
+
+        // eliminamos
+        $this->assertTrue($invoice->delete(), 'cant-delete-invoice');
+        $this->assertTrue($supplier->delete(), 'cant-delete-supplier');
+    }
+
+    public function testCreateInvoiceWithSurcharge()
+    {
+        // creamos un proveedor con el régimen de recargo de equivalencia
+        $supplier = $this->getRandomSupplier();
+        $supplier->regimeniva = RegimenIVA::TAX_SYSTEM_SURCHARGE;
+        $this->assertTrue($supplier->save(), 'cant-create-supplier');
+
+        // creamos la factura
+        $invoice = new FacturaProveedor();
+        $invoice->setSubject($supplier);
+        $this->assertTrue($invoice->save(), 'cant-create-invoice');
+
+        // añadimos una línea
+        $firstLine = $invoice->getNewLine();
+        $firstLine->cantidad = 2;
+        $firstLine->pvpunitario = self::PRODUCT1_COST;
+        $this->assertTrue($firstLine->save(), 'cant-save-first-line');
+
+        // recalculamos
+        $lines = $invoice->getLines();
+        $this->assertTrue(Calculator::calculate($invoice, $lines, true), 'cant-update-invoice');
+        $this->assertGreaterThan(0, $invoice->totalrecargo, 'bad-totalrecargo');
+
+        // comprobamos el asiento
+        $entry = $invoice->getAccountingEntry();
+        $this->assertTrue($entry->exists(), 'accounting-entry-not-found');
+        $this->assertEquals($invoice->total, $entry->importe, 'accounting-entry-bad-importe');
+
+        // eliminamos
+        $this->assertTrue($invoice->delete(), 'cant-delete-invoice');
+        $this->assertTrue($supplier->delete(), 'cant-delete-supplier');
+    }
+
+    public function testCreateInvoiceWithSupplied()
+    {
+        // creamos un proveedor
+        $supplier = $this->getRandomSupplier();
+        $this->assertTrue($supplier->save(), 'cant-create-supplier');
+
+        // creamos una factura
+        $invoice = new FacturaProveedor();
+        $invoice->setSubject($supplier);
+        $this->assertTrue($invoice->save(), 'cant-create-invoice');
+
+        // añadimos una línea
+        $firstLine = $invoice->getNewLine();
+        $firstLine->cantidad = 2;
+        $firstLine->pvpunitario = 100;
+        $firstLine->suplido = true;
+        $this->assertTrue($firstLine->save(), 'cant-save-first-line');
+
+        // recalculamos
+        $lines = $invoice->getLines();
+        $this->assertTrue(Calculator::calculate($invoice, $lines, true), 'cant-update-invoice');
+        $this->assertEquals(200, $invoice->totalsuplidos, 'bad-totalsuplidos');
+
+        // comprobamos el asiento
+        $entry = $invoice->getAccountingEntry();
+        $this->assertTrue($entry->exists(), 'accounting-entry-not-found');
+        $this->assertEquals($invoice->total, $entry->importe, 'accounting-entry-bad-importe');
+
+        // comprobamos que el asiento tiene una línea cuyo haber es el totalsuplidos de la factura
+        $found = false;
+        foreach ($entry->getLines() as $line) {
+            if ($line->haber == $invoice->totalsuplidos) {
+                $found = true;
+                break;
+            }
+        }
+        $this->assertTrue($found, 'accounting-entry-without-supplied-line');
 
         // eliminamos
         $this->assertTrue($invoice->delete(), 'cant-delete-invoice');

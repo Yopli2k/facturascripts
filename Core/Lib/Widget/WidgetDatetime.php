@@ -31,7 +31,7 @@ class WidgetDatetime extends BaseWidget
     protected function inputHtml($type = 'datetime-local', $extraClass = '')
     {
         $class = $this->combineClasses($this->css('form-control'), $this->class, $extraClass);
-        $value = empty($this->value) ? '' : date('Y-m-d H:i', strtotime($this->value));
+        $value = empty($this->value) ? '' : date('Y-m-d H:i:s', strtotime($this->value));
         return '<input type="' . $type . '" name="' . $this->fieldname . '" value="' . $value
             . '" class="' . $class . '"' . $this->inputHtmlExtraParams() . '/>';
     }
@@ -73,7 +73,7 @@ class WidgetDatetime extends BaseWidget
         $initialClass .= ' text-nowrap';
 
         // is today? is the future?
-        if (strtotime($this->value) >= strtotime(date('Y-m-d'))) {
+        if ($this->value && strtotime($this->value) >= strtotime(date('Y-m-d'))) {
             $alternativeClass = 'font-weight-bold';
         }
 

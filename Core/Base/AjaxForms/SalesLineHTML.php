@@ -46,9 +46,6 @@ class SalesLineHTML
     /** @var SalesLineModInterface[] */
     private static $mods = [];
 
-    /** @var int */
-    private static $num = 0;
-
     public static function addMod(SalesLineModInterface $mod)
     {
         self::$mods[] = $mod;
@@ -158,6 +155,7 @@ class SalesLineHTML
      */
     public static function render(array $lines, SalesDocument $model): string
     {
+        self::$numlines = count($lines);
         $i18n = new Translator();
         $html = '';
         foreach ($lines as $line) {
@@ -252,7 +250,7 @@ class SalesLineHTML
         }
 
         $product = $line->getProducto();
-        if ($product->nostock || $product->ventasinstock) {
+        if ($product->nostock) {
             return $html;
         }
 
@@ -263,27 +261,23 @@ class SalesLineHTML
             new DataBaseWhere('referencia', $line->referencia)
         ];
         $stock->loadFromCode('', $where);
-
         switch ($line->actualizastock) {
             case -1:
             case -2:
                 $html = $stock->disponible > 0 ?
-                    '<span class="input-group-text text-success rounded-0">' . $stock->disponible . '</span>' :
-                    '<span class="input-group-text text-danger rounded-0">' . $stock->disponible . '</span>';
+                    '<a href="' . $stock->url() . '" target="_Blank" class="btn btn-outline-success">' . $stock->disponible . '</a>' :
+                    '<a href="' . $stock->url() . '" target="_Blank" class="btn btn-outline-danger">' . $stock->disponible . '</a>';
                 break;
 
             default:
                 $html = $line->cantidad <= $stock->cantidad ?
-                    '<span class="input-group-text text-success rounded-0">' . $stock->cantidad . '</span>' :
-                    '<span class="input-group-text text-danger rounded-0">' . $stock->cantidad . '</span>';
+                    '<a href="' . $stock->url() . '" target="_Blank" class="btn btn-outline-success">' . $stock->cantidad . '</a>' :
+                    '<a href="' . $stock->url() . '" target="_Blank" class="btn btn-outline-danger">' . $stock->cantidad . '</a>';
                 break;
         }
 
-        if (empty($html)) {
-            return $html;
-        }
-
-        return '<div class="input-group-prepend" title="' . $i18n->trans('stock') . '">' . $html . '</div>';
+        return empty($html) ? $html :
+            '<div class="input-group-prepend" title="' . $i18n->trans('stock') . '">' . $html . '</div>';
     }
 
     private static function getFastLine(SalesDocument $model, array $formData): ?SalesDocumentLine
@@ -362,7 +356,7 @@ class SalesLineHTML
                 return self::recargo($i18n, $idlinea, $line, $model, 'salesFormActionWait');
 
             case 'referencia':
-                return self::referencia($i18n, $idlinea, $line, $model, self::$num);
+                return self::referencia($i18n, $idlinea, $line, $model);
 
             case 'salto_pagina':
                 return self::genericBool($i18n, $idlinea, $line, $model, 'salto_pagina', 'page-break');
