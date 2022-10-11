@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2021-2022 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2022 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -17,31 +17,33 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace FacturaScripts\Test\Core;
+namespace FacturaScripts\Core;
 
-use FacturaScripts\Core\Base\MiniLog;
-
-trait LogErrorsTrait
+/**
+ * @author Carlos García Gómez <carlos@facturascripts.com>
+ */
+final class Session
 {
-    protected function logErrors()
-    {
-        if ($this->getStatus() > 1) {
-            foreach (MiniLog::read('', ['critical', 'error', 'warning']) as $item) {
-                error_log($item['message']);
-            }
-        }
+    private static $data = [];
 
-        MiniLog::clear();
+    public static function get(string $key)
+    {
+        return self::$data[$key] ?? null;
     }
 
-    protected function searchAuditLog(string $modelClass, string $modelCode): bool
+    public static function getClientIp(): string
     {
-        foreach (MiniLog::read('audit') as $log) {
-            if ($log['context']['model-class'] === $modelClass && $log['context']['model-code'] === $modelCode) {
-                return true;
+        foreach (['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR'] as $field) {
+            if (isset($_SERVER[$field])) {
+                return (string)$_SERVER[$field];
             }
         }
 
-        return false;
+        return '::1';
+    }
+
+    public static function set(string $key, $value)
+    {
+        self::$data[$key] = $value;
     }
 }
