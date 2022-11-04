@@ -39,43 +39,38 @@ use FacturaScripts\Dinamic\Model\RoleAccess;
  */
 class SalesModalHTML
 {
-
-    /**
-     * @var string
-     */
+    /** @var string */
     protected static $codalmacen;
 
-    /**
-     * @var string
-     */
+    /** @var string */
+    protected static $codcliente;
+
+    /** @var string */
     protected static $codfabricante;
 
-    /**
-     * @var string
-     */
+    /** @var string */
     protected static $codfamilia;
 
-    /**
-     * @var array
-     */
+    /** @var array */
     protected static $idatributovalores = [];
 
-    /**
-     * @var string
-     */
+    /** @var string */
     protected static $orden;
 
-    /**
-     * @var string
-     */
+    /** @var string */
     protected static $query;
+
+    /** @var bool */
+    protected static $vendido;
 
     public static function apply(SalesDocument &$model, array $formData)
     {
         self::$codalmacen = $model->codalmacen;
+        self::$codcliente = $model->codcliente;
         self::$codfabricante = $formData['fp_codfabricante'] ?? '';
         self::$codfamilia = $formData['fp_codfamilia'] ?? '';
         self::$orden = $formData['fp_orden'] ?? 'ref_asc';
+        self::$vendido = (bool)($formData['fp_vendido'] ?? false);
         self::$query = isset($formData['fp_query']) ?
             ToolBox::utils()->noHtml(mb_strtolower($formData['fp_query'], 'UTF8')) : '';
     }
@@ -165,6 +160,12 @@ class SalesModalHTML
 
         if (self::$codfamilia) {
             $sql .= ' AND codfamilia = ' . $dataBase->var2str(self::$codfamilia);
+        }
+
+        if (self::$vendido) {
+            $sql .= ' AND v.referencia IN (SELECT referencia FROM lineasfacturascli'
+                . ' LEFT JOIN facturascli ON lineasfacturascli.idfactura = facturascli.idfactura'
+                . ' WHERE codcliente = ' . $dataBase->var2str(self::$codcliente) . ')';
         }
 
         if (self::$query) {
@@ -293,7 +294,7 @@ class SalesModalHTML
             . '</div>'
             . '<div class="modal-body">'
             . '<div class="form-row">'
-            . '<div class="col-sm">'
+            . '<div class="col-sm mb-2">'
             . '<div class="input-group">'
             . '<input type="text" name="fp_query" class="form-control" id="productModalInput" placeholder="' . $i18n->trans('search')
             . '" onkeyup="return salesFormActionWait(\'find-product\', \'0\', event);"/>'
@@ -303,14 +304,16 @@ class SalesModalHTML
             . '</div>'
             . '</div>'
             . '</div>'
-            . '<div class="col-sm">'
-            . static::fabricantes($i18n)
+            . '<div class="col-sm mb-2">' . static::fabricantes($i18n) . '</div>'
+            . '<div class="col-sm mb-2">' . static::familias($i18n) . '</div>'
+            . '<div class="col-sm mb-2">' . static::orden($i18n) . '</div>'
             . '</div>'
+            . '<div class="form-row">'
             . '<div class="col-sm">'
-            . static::familias($i18n)
+            . '<div class="form-check">'
+            . '<input type="checkbox" name="fp_vendido" value="1" class="form-check-input" id="vendido" onchange="return salesFormAction(\'find-product\', \'0\');">'
+            . '<label class="form-check-label" for="vendido">' . $i18n->trans('previously-sold-to-customer') . '</label>'
             . '</div>'
-            . '<div class="col-sm">'
-            . static::orden($i18n)
             . '</div>'
             . '</div>'
             . '</div>'

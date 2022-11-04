@@ -1,28 +1,22 @@
 function getValueTypeParent(parent) {
-    let term = '';
-
-    if (parent.is('input')) {
-        term = parent.val();
-    } else if (parent.is('select')) {
-        term = parent.find('option:selected').val();
-    } else if (parent.is('checkbox') && parent.prop("checked")) {
-        term = parent.val();
-    } else if (parent.is('radio')) {
-        term = parent.find(':checked').val();
-    } else if (parent.is('textarea')) {
-        term = parent.val();
+    if (parent.is('select')) {
+        return parent.find('option:selected').val();
+    } else if (parent.attr('type') === 'checkbox' && parent.prop("checked")) {
+        return parent.val();
+    } else if (parent.attr('type') === 'radio') {
+        return parent.find(':checked').val();
+    } else if (parent.is('input') || parent.is('textarea')) {
+        return parent.val();
     }
 
-    return term;
+    return '';
 }
 
-function widgetSelectGetData(select) {
-    select.html('');
-
+function widgetSelectGetData(select, parent) {
     let data = {
         action: 'select',
         activetab: select.form().find('input[name="activetab"]').val(),
-        term: getValueTypeParent(select.form().find('[name="' + select.attr('parent') + '"]')),
+        term: getValueTypeParent(parent),
         field: select.attr("data-field"),
         fieldcode: select.attr("data-fieldcode"),
         fieldfilter: select.attr("data-fieldfilter"),
@@ -36,9 +30,10 @@ function widgetSelectGetData(select) {
         data: data,
         dataType: "json",
         success: function (results) {
+            select.html('');
             results.forEach(function (element) {
                 let selected = (element.key == select.attr('value')) ? 'selected' : '';
-                select.append('<option value="'+element.key+'" '+selected+'>'+element.value+'</option>');
+                select.append('<option value="' + element.key + '" ' + selected + '>' + element.value + '</option>');
             });
         },
         error: function (msg) {
@@ -48,17 +43,19 @@ function widgetSelectGetData(select) {
 }
 
 $(document).ready(function () {
-    $('.parentSelect').each(function(){
-        let parent = $(this).attr('parent');
-        if (parent === 'undefined' || parent === false || parent === '') {
+    $('.parentSelect').each(function () {
+        let parentStr = $(this).attr('parent');
+        if (parentStr === 'undefined' || parentStr === false || parentStr === '') {
             return;
         }
 
         let select = $(this);
-        select.form().find('select[name="' + parent + '"]').on('change', function(){
-            widgetSelectGetData(select);
-        });
-
-        widgetSelectGetData(select);
+        let parent = select.form().find('[name="' + parentStr + '"]');
+        if (parent.length > 0) {
+            widgetSelectGetData(select, parent);
+            parent.change(function () {
+                widgetSelectGetData(select, parent);
+            });
+        }
     });
 });

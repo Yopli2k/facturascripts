@@ -22,6 +22,7 @@ namespace FacturaScripts\Core\App;
 use DateTimeZone;
 use FacturaScripts\Core\Base\PluginManager;
 use FacturaScripts\Core\Base\ToolBox;
+use FacturaScripts\Core\Html;
 use mysqli;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -165,16 +166,15 @@ final class AppInstaller
         // HTML template variables
         $templateVars = [
             'license' => file_get_contents(FS_FOLDER . DIRECTORY_SEPARATOR . 'COPYING'),
-            'memcache_prefix' => ToolBox::utils()->randomString(8),
             'timezones' => DateTimeZone::listIdentifiers(),
             'version' => PluginManager::CORE_VERSION
         ];
 
         // Load the template engine
-        $webRender = new WebRender();
+        Html::disablePlugins();
 
         // Generate and return the HTML
-        $response = new Response($webRender->render($template, $templateVars), Response::HTTP_OK);
+        $response = new Response(Html::render($template, $templateVars), Response::HTTP_OK);
         $response->send();
     }
 
@@ -199,7 +199,7 @@ final class AppInstaller
         $file = fopen(FS_FOLDER . '/config.php', 'wb');
         if (is_resource($file)) {
             fwrite($file, "<?php\n");
-            fwrite($file, "define('FS_COOKIES_EXPIRE', " . $this->request->request->get('fs_cookie_expire', 604800) . ");\n");
+            fwrite($file, "define('FS_COOKIES_EXPIRE', " . $this->request->request->get('fs_cookie_expire', 31536000) . ");\n");
             fwrite($file, "define('FS_ROUTE', '" . $this->request->request->get('fs_route', $this->getUri()) . "');\n");
             fwrite($file, "define('FS_DB_FOREIGN_KEYS', true);\n");
             fwrite($file, "define('FS_DB_TYPE_CHECK', true);\n");
@@ -207,8 +207,7 @@ final class AppInstaller
             fwrite($file, "define('FS_MYSQL_COLLATE', 'utf8_bin');\n");
 
             $fields = [
-                'lang', 'timezone', 'db_type', 'db_host', 'db_port', 'db_name', 'db_user',
-                'db_pass', 'cache_host', 'cache_port', 'cache_prefix', 'hidden_plugins'
+                'lang', 'timezone', 'db_type', 'db_host', 'db_port', 'db_name', 'db_user', 'db_pass', 'hidden_plugins'
             ];
             foreach ($fields as $field) {
                 fwrite($file, "define('FS_" . strtoupper($field) . "', '" . $this->request->request->get('fs_' . $field, '') . "');\n");

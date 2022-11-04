@@ -37,40 +37,28 @@ use FacturaScripts\Dinamic\Model\Proveedor;
  */
 class PurchasesModalHTML
 {
-
-    /**
-     * @var string
-     */
+    /** @var string */
     protected static $codalmacen;
 
-    /**
-     * @var string
-     */
+    /** @var string */
     protected static $codfabricante;
 
-    /**
-     * @var string
-     */
+    /** @var string */
     protected static $codfamilia;
 
-    /**
-     * @var string
-     */
+    /** @var string */
     protected static $codproveedor;
 
-    /**
-     * @var array
-     */
+    /** @var bool */
+    protected static $comprado;
+
+    /** @var array */
     protected static $idatributovalores = [];
 
-    /**
-     * @var string
-     */
+    /** @var string */
     protected static $orden;
 
-    /**
-     * @var string
-     */
+    /** @var string */
     protected static $query;
 
     public static function apply(PurchaseDocument &$model, array $formData)
@@ -80,6 +68,7 @@ class PurchasesModalHTML
         self::$codfamilia = $formData['fp_codfamilia'] ?? '';
         self::$codproveedor = $model->codproveedor;
         self::$orden = $formData['fp_orden'] ?? 'ref_asc';
+        self::$comprado = (bool)($formData['fp_comprado'] ?? false);
         self::$query = isset($formData['fp_query']) ?
             ToolBox::utils()->noHtml(mb_strtolower($formData['fp_query'], 'UTF8')) : '';
     }
@@ -178,6 +167,10 @@ class PurchasesModalHTML
             $sql .= ' AND codfamilia = ' . $dataBase->var2str(self::$codfamilia);
         }
 
+        if (self::$comprado) {
+            $sql .= ' AND pp.codproveedor = ' . $dataBase->var2str(self::$codproveedor);
+        }
+
         if (self::$query) {
             $words = explode(' ', self::$query);
             if (count($words) === 1) {
@@ -246,7 +239,7 @@ class PurchasesModalHTML
             . '</div>'
             . '<div class="modal-body">'
             . '<div class="form-row">'
-            . '<div class="col-sm">'
+            . '<div class="col-sm mb-2">'
             . '<div class="input-group">'
             . '<input type="text" name="fp_query" class="form-control" id="productModalInput" placeholder="' . $i18n->trans('search')
             . '" onkeyup="return purchasesFormActionWait(\'find-product\', \'0\', event);"/>'
@@ -256,14 +249,16 @@ class PurchasesModalHTML
             . '</div>'
             . '</div>'
             . '</div>'
-            . '<div class="col-sm">'
-            . static::fabricantes($i18n)
+            . '<div class="col-sm mb-2">' . static::fabricantes($i18n) . '</div>'
+            . '<div class="col-sm mb-2">' . static::familias($i18n) . '</div>'
+            . '<div class="col-sm mb-2">' . static::orden($i18n) . '</div>'
             . '</div>'
+            . '<div class="form-row">'
             . '<div class="col-sm">'
-            . static::familias($i18n)
+            . '<div class="form-check">'
+            . '<input type="checkbox" name="fp_comprado" value="1" class="form-check-input" id="comprado" onchange="return purchasesFormAction(\'find-product\', \'0\');">'
+            . '<label class="form-check-label" for="comprado">' . $i18n->trans('previously-purchased-from-supplier') . '</label>'
             . '</div>'
-            . '<div class="col-sm">'
-            . static::orden($i18n)
             . '</div>'
             . '</div>'
             . '</div>'

@@ -12,6 +12,7 @@
                     <input type="hidden" name="action" value="save"/>
                     <input type="hidden" name="code" value="{{ fsc.modelCode }}"/>
                     <input type="hidden" name="model" value="{{ fsc.modelClass }}"/>
+                    <input type="hidden" name="multireqtoken" value="{{ fsc.multiRequestProtection.newToken() }}"/>
                     <div class="card shadow mb-4">
                         <div class="card-body">
                             <div class="form-row">
@@ -20,9 +21,9 @@
                                         <div class="form-group">
                                             <div class="input-group">
                                                 <div class="input-group-prepend">
-                                                    <span class="input-group-text">
-                                                        <i class="fas fa-search"></i>
-                                                    </span>
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-search"></i>
+                                                </span>
                                                 </div>
                                                 <input type="hidden" id="codclienteAutocomplete" name="codcliente"
                                                        value="{{ fsc.model.codcliente }}"/>
@@ -40,9 +41,9 @@
                                         <div class="form-group">
                                             <div class="input-group">
                                                 <div class="input-group-prepend">
-                                                    <span class="input-group-text">
-                                                        <i class="fas fa-search"></i>
-                                                    </span>
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-search"></i>
+                                                </span>
                                                 </div>
                                                 <input type="hidden" id="codproveedorAutocomplete" name="codproveedor"
                                                        value="{{ fsc.model.codproveedor }}"/>
@@ -73,9 +74,9 @@
                                         <div class="form-group">
                                             <div class="input-group">
                                                 <div class="input-group-prepend">
-                                                    <span class="input-group-text">
-                                                        <i class="fas fa-hashtag"></i>
-                                                    </span>
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-hashtag"></i>
+                                                </span>
                                                 </div>
                                                 <input type="text" name="numero2" class="form-control"
                                                        placeholder="{{ i18n.trans('number2') }}"/>
@@ -87,9 +88,9 @@
                                         <div class="form-group">
                                             <div class="input-group">
                                                 <div class="input-group-prepend">
-                                                    <span class="input-group-text">
-                                                        <i class="fas fa-hashtag"></i>
-                                                    </span>
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-hashtag"></i>
+                                                </span>
                                                 </div>
                                                 <input type="text" name="numproveedor" class="form-control"
                                                        placeholder="{{ i18n.trans('numsupplier') }}"/>
@@ -107,6 +108,8 @@
                                     <th>{{ i18n.trans('description') }}</th>
                                     <th class="text-right">{{ i18n.trans('quantity') }}</th>
                                     <th class="text-right">{{ i18n.trans('price') }}</th>
+                                    <th class="text-right">{{ i18n.trans('dto') }}</th>
+                                    <th class="text-right">{{ i18n.trans('dto-2') }}</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -115,7 +118,15 @@
                                         <td>{{ line.referencia }}</td>
                                         <td>{{ line.descripcion | raw | nl2br }}</td>
                                         <td class="text-right">{{ line.cantidad }}</td>
-                                        <td class="text-right">{{ line.pvpunitario }}</td>
+                                        <td class="text-right">
+                                            {{ fsc.toolBox().numbers().format(line.pvpunitario) }}
+                                        </td>
+                                        <td class="text-right">
+                                            {{ fsc.toolBox().numbers().format(line.dtopor) }}%
+                                        </td>
+                                        <td class="text-right">
+                                            {{ fsc.toolBox().numbers().format(line.dtopor2) }}%
+                                        </td>
                                     </tr>
                                 {% endfor %}
                                 </tbody>
@@ -177,22 +188,46 @@
                                         </select>
                                     </div>
                                 </div>
+                                <div class="col-sm">
+                                    <div class="form-group">
+                                        {{ i18n.trans('global-dto') }}
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-percentage"></i>
+                                                </span>
+                                            </div>
+                                            <input type="number" max="100" min="0" step="any" name="dtopor1"
+                                                   class="form-control" value="{{ fsc.model.dtopor1 }}"/>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm">
+                                    <div class="form-group">
+                                        {{ i18n.trans('global-dto-2') }}
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-percentage"></i>
+                                                </span>
+                                            </div>
+                                            <input type="number" max="100" min="0" step="any" name="dtopor2"
+                                                   class="form-control" value="{{ fsc.model.dtopor2 }}"/>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-12">
+                                    {{ i18n.trans('observations') }}
+                                    <textarea name="observaciones" class="form-control">{{ fsc.model.observaciones }}
+                                    </textarea>
+                                </div>
                             </div>
-                            <div class="form-row align-items-end">
-                                <div class="col-sm-8">
-                                    <div class="form-group">
-                                        {{ i18n.trans('observations') }}
-                                        <textarea name="observaciones"
-                                                  class="form-control">{{ fsc.model.observaciones }}</textarea>
-                                    </div>
-                                </div>
-                                <div class="col-sm text-right">
-                                    <div class="form-group">
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="fas fa-save"></i> {{ i18n.trans('save') }}
-                                        </button>
-                                    </div>
-                                </div>
+                        </div>
+                        <div class="card-footer">
+                            <div class="text-right">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> {{ i18n.trans('save') }}
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -212,7 +247,7 @@
     <script src="{{ asset('node_modules/jquery-ui-dist/jquery-ui.min.js') }}"></script>
     <script type="text/javascript">
         function businessDocViewAutocompleteGetData(formId, formData, term) {
-            var rawForm = $("form[id=" + formId + "]").serializeArray();
+            let rawForm = $("form[id=" + formId + "]").serializeArray();
             $.each(rawForm, function (i, input) {
                 formData[input.name] = input.value;
             });
@@ -223,13 +258,13 @@
 
         $(document).ready(function () {
             $(".autocomplete-dc").each(function () {
-                var data = {
+                let data = {
                     field: $(this).attr("data-field"),
                     fieldcode: $(this).attr("data-fieldcode"),
                     fieldtitle: $(this).attr("data-fieldtitle"),
                     source: $(this).attr("data-source")
                 };
-                var formName = $(this).closest("form").attr("name");
+                let formName = $(this).closest("form").attr("name");
                 $(this).autocomplete({
                     source: function (request, response) {
                         $.ajax({
@@ -238,7 +273,7 @@
                             data: businessDocViewAutocompleteGetData(formName, data, request.term),
                             dataType: "json",
                             success: function (results) {
-                                var values = [];
+                                let values = [];
                                 results.forEach(function (element) {
                                     if (element.key === null || element.key === element.value) {
                                         values.push(element);
@@ -256,7 +291,7 @@
                     select: function (event, ui) {
                         if (ui.item.key !== null) {
                             $("#" + data.field + "Autocomplete").val(ui.item.key);
-                            var value = ui.item.value.split(" | ");
+                            let value = ui.item.value.split(" | ");
                             if (value.length > 1) {
                                 ui.item.value = value[1];
                             } else {
