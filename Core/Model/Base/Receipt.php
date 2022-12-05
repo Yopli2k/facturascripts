@@ -29,83 +29,55 @@ use FacturaScripts\Dinamic\Model\FormaPago;
  */
 abstract class Receipt extends ModelOnChangeClass
 {
-
     use CompanyRelationTrait;
     use PaymentRelationTrait;
 
-    /**
-     * @var string
-     */
+    /** @var string */
     public $coddivisa;
 
-    /**
-     * @var string
-     */
+    /** @var string */
     public $codigofactura;
 
-    /**
-     * @var bool
-     */
+    /** @var bool */
     protected $disableInvoiceUpdate = false;
 
-    /**
-     * @var bool
-     */
+    /** @var bool */
     protected $disablePaymentGeneration = false;
 
-    /**
-     * @var string
-     */
+    /** @var string */
     public $fecha;
 
-    /**
-     * @var string
-     */
+    /** @var string */
     public $fechapago;
 
-    /**
-     * @var int
-     */
+    /** @var int */
     public $idfactura;
 
-    /**
-     * @var int
-     */
+    /** @var int */
     public $idrecibo;
 
-    /**
-     * @var float
-     */
+    /** @var float */
     public $importe;
 
-    /**
-     * @var float
-     */
+    /** @var float */
     public $liquidado;
 
-    /**
-     * @var string
-     */
+    /** @var string */
     public $nick;
 
-    /**
-     * @var int
-     */
+    /** @var int */
     public $numero;
 
-    /**
-     * @var string
-     */
+    /** @var string */
     public $observaciones;
 
-    /**
-     * @var bool
-     */
+    /** @var bool */
     public $pagado;
 
-    /**
-     * @var string
-     */
+    /** @var bool */
+    public $vencido;
+
+    /** @var string */
     public $vencimiento;
 
     abstract public function getInvoice();
@@ -126,6 +98,7 @@ abstract class Receipt extends ModelOnChangeClass
         $this->liquidado = 0.0;
         $this->numero = 1;
         $this->pagado = false;
+        $this->vencido = false;
     }
 
     public function delete(): bool
@@ -182,22 +155,25 @@ abstract class Receipt extends ModelOnChangeClass
     {
         $this->observaciones = $this->toolBox()->utils()->noHtml($this->observaciones);
 
-        // set invoice code
+        // asignamos el código de la factura
         if (empty($this->codigofactura)) {
             $this->codigofactura = $this->getInvoice()->codigo;
         }
 
-        // check payment date
+        // comprobamos la fecha de pago
         if ($this->pagado === false) {
             $this->fechapago = null;
         } elseif (empty($this->fechapago)) {
             $this->fechapago = date(self::DATE_STYLE);
         }
 
-        // check expiration date
+        // comprobamos la fecha de vencimiento
         if (strtotime($this->vencimiento) < strtotime($this->fecha)) {
             $this->vencimiento = $this->fecha;
         }
+
+        // comprobamos el vencimiento
+        $this->vencido = !$this->pagado && strtotime($this->vencimiento) < time();
 
         return parent::test();
     }
