@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2022 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2013-2023 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -114,7 +114,7 @@ class FacturaProveedor extends Base\PurchaseDocument
         // cada serie tiene numeración independiente
         foreach (Series::all() as $serie) {
             // ordenamos facturas por fecha y hora
-            $sql = 'SELECT idfactura,numero,fecha,hora FROM ' . static::tableName()
+            $sql = 'SELECT codigo,idfactura,numero,fecha,hora FROM ' . static::tableName()
                 . ' WHERE codejercicio = ' . self::$dataBase->var2str($exercise->codejercicio)
                 . ' AND codserie = ' . self::$dataBase->var2str($serie->codserie)
                 . ' ORDER BY fecha ASC, hora ASC, idfactura ASC';
@@ -171,7 +171,14 @@ class FacturaProveedor extends Base\PurchaseDocument
                     . ' WHERE codigo = ' . self::$dataBase->var2str($codigo) . ';'
                     . ' UPDATE ' . static::tableName()
                     . ' SET numero = ' . self::$dataBase->var2str($number) . ', codigo = ' . self::$dataBase->var2str($codigo)
-                    . ' WHERE idfactura = ' . self::$dataBase->var2str($row['idfactura']) . ';';
+                    . ' WHERE idfactura = ' . self::$dataBase->var2str($row['idfactura']) . ';'
+                    . ' UPDATE recibospagosprov'
+                    . ' SET codigofactura = ' . self::$dataBase->var2str($codigo)
+                    . ' WHERE idfactura = ' . self::$dataBase->var2str($row['idfactura']) . ';'
+                    . ' UPDATE asientos'
+                    . ' SET documento = ' . self::$dataBase->var2str($codigo) . ', concepto = REPLACE(concepto, '
+                    . self::$dataBase->var2str($row['codigo']) . ', ' . self::$dataBase->var2str($codigo) . ')'
+                    . ' WHERE documento = ' . self::$dataBase->var2str($row['codigo']) . ';';
             }
             ++$number;
         }
