@@ -242,6 +242,13 @@ class InvoiceToAccounting extends AccountingClass
             if (false === $this->addTaxLine($entry, $subAccount, $this->counterpart, true, $value)) {
                 return false;
             }
+
+            if ((float)$value['totalrecargo'] != 0.00) {
+                $surcharge = $this->getSurchargeAccount($tax->codsubcuentasop_recargo, $subAccount);
+                if (false === $this->addSurchargeLine($entry, $surcharge, true, (float)$value['totalrecargo'])) {
+                    return false;
+                }
+            }
         }
 
         return true;
@@ -320,6 +327,13 @@ class InvoiceToAccounting extends AccountingClass
             if (false === $this->addTaxLine($entry, $subAccount, $this->counterpart, false, $value)) {
                 return false;
             }
+
+            if ((float)$value['totalrecargo'] != 0.00) {
+                $surcharge = $this->getSurchargeAccount($tax->codsubcuentarep_recargo, $subAccount);
+                if (false === $this->addSurchargeLine($entry, $surcharge, false, (float)$value['totalrecargo'])) {
+                    return false;
+                }
+            }
         }
         return true;
     }
@@ -347,6 +361,21 @@ class InvoiceToAccounting extends AccountingClass
 
         $this->counterpart = $subAccount;
         return $this->addBasicLine($entry, $subAccount, false);
+    }
+
+    /**
+     *
+     * @param Asiento $entry
+     * @param Subcuenta $subaccount
+     * @param bool $isDebit
+     * @param float $amount
+     * @return bool
+     */
+    protected function addSurchargeLine($entry, $subaccount, $isDebit, $amount): bool
+    {
+        $newLine = $this->getBasicLine($entry, $subaccount, $isDebit, $amount);
+        $newLine->setCounterpart($this->counterpart);
+        return $newLine->save();
     }
 
     /**
@@ -472,5 +501,24 @@ class InvoiceToAccounting extends AccountingClass
 
         $entry->iddiario = $serie->iddiario;
         $entry->canal = $serie->canal;
+    }
+
+    /**
+     *
+     * @param string $subaccount
+     * @param Subcuenta $default
+     * @return Subcuenta
+     */
+    private function getSurchargeAccount($subaccount, $default)
+    {
+        if (empty($subaccount)) {
+            return $default;
+        }
+
+        $result = $this->getSubAccount($subaccount);
+        if (empty($result->codsubcuenta)) {
+            return $default;
+        }
+        return $result;
     }
 }
