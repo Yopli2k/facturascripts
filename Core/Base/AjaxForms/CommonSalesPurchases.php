@@ -23,6 +23,7 @@ use FacturaScripts\Core\Base\ToolBox;
 use FacturaScripts\Core\Base\Translator;
 use FacturaScripts\Core\DataSrc\Almacenes;
 use FacturaScripts\Core\DataSrc\Divisas;
+use FacturaScripts\Core\DataSrc\Empresas;
 use FacturaScripts\Core\DataSrc\FormasPago;
 use FacturaScripts\Core\DataSrc\Series;
 use FacturaScripts\Core\Model\Base\BusinessDocument;
@@ -75,16 +76,24 @@ trait CommonSalesPurchases
             . self::modalDocList($i18n, $children, 'documents-generated', 'childrenModal');
     }
 
-    protected static function codalmacen(Translator $i18n, BusinessDocument $model): string
+    protected static function codalmacen(Translator $i18n, BusinessDocument $model, string $jsFunc): string
     {
         $options = [];
-        foreach (Almacenes::all() as $row) {
-            $options[] = ($row->codalmacen === $model->codalmacen) ?
-                '<option value="' . $row->codalmacen . '" selected="">' . $row->nombre . '</option>' :
-                '<option value="' . $row->codalmacen . '">' . $row->nombre . '</option>';
+        foreach (Empresas::all() as $company) {
+            if ($company->idempresa != $model->idempresa && $model->exists()) {
+                continue;
+            }
+            $options[] = '<optgroup label="' . $company->nombrecorto . '">';
+            foreach ($company->getWarehouses() as $row) {
+                $options[] = ($row->codalmacen === $model->codalmacen) ?
+                    '<option value="' . $row->codalmacen . '" selected>' . $row->nombre . '</option>' :
+                    '<option value="' . $row->codalmacen . '">' . $row->nombre . '</option>';
+            }
+            $options[] = '</optgroup>';
         }
-
-        $attributes = $model->editable ? 'name="codalmacen" required=""' : 'disabled=""';
+        $attributes = $model->editable ?
+            'name="codalmacen" onchange="return ' . $jsFunc . '(\'recalculate\', \'0\');" required=""' :
+            'disabled=""';
         return empty($model->subjectColumnValue()) || count($options) <= 1 ? '' : '<div class="col-sm-2 col-lg">'
             . '<div class="form-group">'
             . '<a href="' . Almacenes::get($model->codalmacen)->url() . '">' . $i18n->trans('warehouse') . '</a>'
@@ -99,7 +108,7 @@ trait CommonSalesPurchases
         $options = [];
         foreach (Divisas::all() as $row) {
             $options[] = ($row->coddivisa === $model->coddivisa) ?
-                '<option value="' . $row->coddivisa . '" selected="">' . $row->descripcion . '</option>' :
+                '<option value="' . $row->coddivisa . '" selected>' . $row->descripcion . '</option>' :
                 '<option value="' . $row->coddivisa . '">' . $row->descripcion . '</option>';
         }
 
@@ -117,8 +126,11 @@ trait CommonSalesPurchases
     {
         $options = [];
         foreach (FormasPago::all() as $row) {
+            if ($row->idempresa != $model->idempresa) {
+                continue;
+            }
             $options[] = ($row->codpago === $model->codpago) ?
-                '<option value="' . $row->codpago . '" selected="">' . $row->descripcion . '</option>' :
+                '<option value="' . $row->codpago . '" selected>' . $row->descripcion . '</option>' :
                 '<option value="' . $row->codpago . '">' . $row->descripcion . '</option>';
         }
 
@@ -136,7 +148,7 @@ trait CommonSalesPurchases
         $options = [];
         foreach (Series::all() as $row) {
             $options[] = ($row->codserie === $model->codserie) ?
-                '<option value="' . $row->codserie . '" selected="">' . $row->descripcion . '</option>' :
+                '<option value="' . $row->codserie . '" selected>' . $row->descripcion . '</option>' :
                 '<option value="' . $row->codserie . '">' . $row->descripcion . '</option>';
         }
 
@@ -246,6 +258,21 @@ trait CommonSalesPurchases
         return empty($model->subjectColumnValue()) ? '' : '<div class="col-sm">'
             . '<div class="form-group">' . $i18n->trans('date')
             . '<input type="date" ' . $attributes . ' value="' . date('Y-m-d', strtotime($model->fecha)) . '" class="form-control"/>'
+            . '</div>'
+            . '</div>';
+    }
+
+    protected static function fechadevengo(Translator $i18n, BusinessDocument $model): string
+    {
+        if (false === property_exists($model, 'fechadevengo')) {
+            return '';
+        }
+
+        $attributes = $model->editable ? 'name="fechadevengo" required=""' : 'disabled=""';
+        $value = empty($model->fechadevengo) ? date('Y-m-d', strtotime($model->fecha)) : date('Y-m-d', strtotime($model->fechadevengo));
+        return empty($model->subjectColumnValue()) ? '' : '<div class="col-sm">'
+            . '<div class="form-group">' . $i18n->trans('accrual-date')
+            . '<input type="date" ' . $attributes . ' value="' . $value . '" class="form-control"/>'
             . '</div>'
             . '</div>';
     }
