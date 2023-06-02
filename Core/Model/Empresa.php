@@ -56,7 +56,7 @@ class Empresa extends Base\Contact
     public $direccion;
 
     /** @var string */
-    public $exceptioniva;
+    public $excepcioniva;
 
     /** @var int */
     public $idempresa;
