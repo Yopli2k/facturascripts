@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2022 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2013-2023 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -42,6 +42,9 @@ trait InvoiceTrait
 
     /** @var string */
     public $fecha;
+
+    /** @var string */
+    public $fechadevengo;
 
     /** @var int */
     public $idfactura;
@@ -164,6 +167,15 @@ trait InvoiceTrait
         return 'idfactura';
     }
 
+    public function test(): bool
+    {
+        if (empty($this->fechadevengo)) {
+            $this->fechadevengo = $this->fecha;
+        }
+
+        return parent::test();
+    }
+
     /**
      * @param string $field
      *
@@ -200,6 +212,7 @@ trait InvoiceTrait
                     return false;
                 }
             // no break
+            case 'fechadevengo':
             case 'total':
                 return $this->onChangeTotal();
         }
@@ -228,5 +241,11 @@ trait InvoiceTrait
         $generator->update($this);
 
         return true;
+    }
+
+    protected function setPreviousData(array $fields = [])
+    {
+        $more = ['fechadevengo'];
+        parent::setPreviousData(array_merge($more, $fields));
     }
 }
