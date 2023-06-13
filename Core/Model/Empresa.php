@@ -84,6 +84,12 @@ class Empresa extends Base\Contact
      */
     private $settings = null;
 
+    public function checkVies(): bool
+    {
+        $codiso = Paises::get($this->codpais)->codiso ?? '';
+        return Vies::check($this->cifnif ?? '', $codiso) === 1;
+    }
+
     public function clear()
     {
         parent::clear();

@@ -26,6 +26,7 @@ use FacturaScripts\Core\DataSrc\Divisas;
 use FacturaScripts\Core\DataSrc\Empresas;
 use FacturaScripts\Core\DataSrc\FormasPago;
 use FacturaScripts\Core\DataSrc\Series;
+use FacturaScripts\Core\Lib\InvoiceOperation;
 use FacturaScripts\Core\Model\Base\BusinessDocument;
 use FacturaScripts\Core\Model\Base\TransformerDocument;
 use FacturaScripts\Dinamic\Model\EstadoDocumento;
@@ -269,7 +270,7 @@ trait CommonSalesPurchases
         }
 
         $attributes = $model->editable ? 'name="fechadevengo" required=""' : 'disabled=""';
-        $value = empty($model->fechadevengo) ? date('Y-m-d', strtotime($model->fecha)) : date('Y-m-d', strtotime($model->fechadevengo));
+        $value = empty($model->fechadevengo) ? '' : date('Y-m-d', strtotime($model->fechadevengo));
         return empty($model->subjectColumnValue()) ? '' : '<div class="col-sm">'
             . '<div class="form-group">' . $i18n->trans('accrual-date')
             . '<input type="date" ' . $attributes . ' value="' . $value . '" class="form-control"/>'
@@ -452,6 +453,23 @@ trait CommonSalesPurchases
             . '<textarea ' . $attributes . ' class="form-control" placeholder="' . $i18n->trans('observations')
             . '" rows="' . $rows . '">' . $model->observaciones . '</textarea>'
             . '</div></div>';
+    }
+
+    protected static function operacion(Translator $i18n, BusinessDocument $model): string
+    {
+        $options = ['<option value="">------</option>'];
+        foreach (InvoiceOperation::all() as $key => $value) {
+            $options[] = ($key === $model->operacion) ?
+                '<option value="' . $key . '" selected>' . $i18n->trans($value) . '</option>' :
+                '<option value="' . $key . '">' . $i18n->trans($value) . '</option>';
+        }
+
+        $attributes = $model->editable ? ' name="operacion"' : ' disabled';
+        return '<div class="col-sm-6">'
+            . '<div class="form-group">' . $i18n->trans('operation')
+            . '<select' . $attributes . ' class="form-control">' . implode('', $options) . '</select>'
+            . '</div>'
+            . '</div>';
     }
 
     protected static function paid(Translator $i18n, BusinessDocument $model, string $jsName): string
