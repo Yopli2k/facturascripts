@@ -37,6 +37,7 @@ abstract class BusinessDocument extends ModelOnChangeClass
     use ExerciseRelationTrait;
     use PaymentRelationTrait;
     use SerieRelationTrait;
+    use IntracomunitariaTrait;
 
     /**
      * VAT number of the customer or supplier.
@@ -483,7 +484,10 @@ abstract class BusinessDocument extends ModelOnChangeClass
      */
     protected function setPreviousData(array $fields = [])
     {
-        $more = ['codalmacen', 'coddivisa', 'codpago', 'codserie', 'fecha', 'hora', 'idempresa', 'numero', 'total'];
+        $more = [
+            'codalmacen', 'coddivisa', 'codpago', 'codserie', 'fecha', 'hora', 'idempresa', 'numero',
+            'operacion', 'total'
+        ];
         parent::setPreviousData(array_merge($more, $fields));
     }
 }
