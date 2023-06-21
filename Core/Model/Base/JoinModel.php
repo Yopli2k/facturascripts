@@ -439,6 +439,11 @@ abstract class JoinModel
         $this->masterModel = $model;
     }
 
+    /**
+     * Assign the values of the $data array to the model view properties.
+     *
+     * @param array $data
+     */
     protected function toolBox(): ToolBox
     {
         return new ToolBox();
