@@ -419,21 +419,6 @@ class InvoiceToAccounting extends AccountingClass
     }
 
     /**
-     *
-     * @param Asiento $entry
-     * @param Subcuenta $subaccount
-     * @param bool $isDebit
-     * @param float $amount
-     * @return bool
-     */
-    protected function addSurchargeLine($entry, $subaccount, $isDebit, $amount): bool
-    {
-        $newLine = $this->getBasicLine($entry, $subaccount, $isDebit, $amount);
-        $newLine->setCounterpart($this->counterpart);
-        return $newLine->save();
-    }
-
-    /**
      * Perform the initial checks to continue with the accounting process
      *
      * @return bool
