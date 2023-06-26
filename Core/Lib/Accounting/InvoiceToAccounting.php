@@ -382,13 +382,6 @@ class InvoiceToAccounting extends AccountingClass
             if (false === $done) {
                 return false;
             }
-
-            if ((float)$value['totalrecargo'] != 0.00) {
-                $surcharge = $this->getSurchargeAccount($tax->codsubcuentarep_recargo, $subAccount);
-                if (false === $this->addSurchargeLine($entry, $surcharge, false, (float)$value['totalrecargo'])) {
-                    return false;
-                }
-            }
         }
         return true;
     }
