@@ -240,6 +240,12 @@ final class Plugins
         return in_array($pluginName, self::enabled());
     }
 
+    public static function isInstalled(string $pluginName): bool
+    {
+        $plugin = self::get($pluginName);
+        return empty($plugin) ? false : $plugin->installed;
+    }
+
     /**
      * @param bool $hidden
      * @return Plugin[]
