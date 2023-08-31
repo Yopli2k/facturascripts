@@ -93,7 +93,7 @@ class SalesHeaderHTML
         $model->operacion = $formData['operacion'] ?? $model->operacion;
         $model->tasaconv = (float)($formData['tasaconv'] ?? $model->tasaconv);
 
-        foreach (['codagente', 'codtrans', 'fechadevengo', 'finoferta'] as $key) {
+        foreach (['codagente', 'codtrans', 'fechadevengo', 'finoferta', 'servido'] as $key) {
             if (isset($formData[$key])) {
                 $model->{$key} = empty($formData[$key]) ? null : $formData[$key];
             }
@@ -379,6 +379,7 @@ class SalesHeaderHTML
             . self::renderField($i18n, $model, 'tasaconv')
             . self::renderField($i18n, $model, 'user')
             . self::renderField($i18n, $model, 'codagente')
+            . self::renderField($i18n, $model, 'servido')
             . self::renderNewFields($i18n, $model)
             . '</div>'
             . '</div>'
@@ -591,6 +592,9 @@ class SalesHeaderHTML
             case 'provincia':
                 return self::provincia($i18n, $model, 6, 100);
 
+            case 'servido':
+                return self::servido($i18n, $model);
+
             case 'tasaconv':
                 return self::tasaconv($i18n, $model);
 
@@ -657,4 +661,3 @@ class SalesHeaderHTML
         }
         return $html;
     }
-}
