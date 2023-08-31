@@ -661,3 +661,4 @@ class SalesHeaderHTML
         }
         return $html;
     }
+}
