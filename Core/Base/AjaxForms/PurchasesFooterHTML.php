@@ -28,7 +28,7 @@ use FacturaScripts\Core\Model\User;
 /**
  * Description of PurchasesFooterHTML
  *
- * @author Carlos Garcia Gomez <carlos@facturascripts.com>
+ * @author Carlos Garcia Gomez           <carlos@facturascripts.com>
  * @author Jose Antonio Cuello Principal <yopli2000@gmail.com>
  */
 class PurchasesFooterHTML
