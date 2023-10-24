@@ -77,10 +77,11 @@ class ListFacturaProveedor extends ListBusinessDocument
             ['label' => $i18n->trans('unpaid'), 'where' => [new DataBaseWhere('pagada', false)]],
             ['label' => $i18n->trans('expired-receipt'), 'where' => [new DataBaseWhere('vencida', true)]],
         ]);
-        $this->addFilterCheckbox('ListFacturaProveedor', 'idasiento', 'invoice-without-acc-entry', 'idasiento', 'IS', null);
+        $this->addFilterCheckbox($viewName, 'idasiento', 'invoice-without-acc-entry', 'idasiento', 'IS', null);
 
         // botones
-        $this->addButtonLockInvoice('ListFacturaProveedor');
+        $this->addButtonLockInvoice($viewName);
+        $this->addButtonGenerateAccountingInvoices($viewName);
 
         if ($this->user->admin) {
             $this->addButton($viewName, [
@@ -187,7 +188,8 @@ class ListFacturaProveedor extends ListBusinessDocument
 
         $codejercicio = $this->request->request->get('exercise');
         if (FacturaProveedorRenumber::run($codejercicio)) {
-            self::toolBox()->i18nLog()->notice('record-updated-correctly');
+            self::toolBox()->i18nLog('facturasprov')->notice('renumber-invoices-success', ['%exercise%' => $codejercicio]);
+            self::toolBox()->i18nLog()->notice('renumber-invoices-success', ['%exercise%' => $codejercicio]);
             return;
         }
 

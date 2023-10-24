@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2022 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2023 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -28,13 +28,12 @@ use FacturaScripts\Dinamic\Model\TotalModel;
 /**
  * Controller to edit a single item from the Agente model
  *
- * @author Carlos Garcia Gomez <carlos@facturascripts.com>
- * @author Jose Antonio Cuello Principal <yopli2000@gmail.com>
+ * @author Carlos Garcia Gomez            <carlos@facturascripts.com>
+ * @author Jose Antonio Cuello Principal  <yopli2000@gmail.com>
  * @collaborator Daniel Fernández Giménez <hola@danielfg.es>
  */
 class EditAgente extends ComercialContactController
 {
-
     /**
      * Returns the sum of the agent's total outstanding invoices.
      *
@@ -65,7 +64,7 @@ class EditAgente extends ComercialContactController
         return $data;
     }
 
-    protected function createContactView(string $viewName = 'EditContacto')
+    protected function createContactView(string $viewName = 'EditContacto'): void
     {
         $this->addEditView($viewName, 'Contacto', 'contact', 'fa fa-address-book');
 
@@ -80,7 +79,7 @@ class EditAgente extends ComercialContactController
         $this->setSettings($viewName, 'btnDelete', false);
     }
 
-    protected function createCustomerView(string $viewName = 'ListCliente')
+    protected function createCustomerView(string $viewName = 'ListCliente'): void
     {
         $this->addListView($viewName, 'Cliente', 'customers', 'fas fa-users');
         $this->views[$viewName]->addOrderBy(['codcliente'], 'code');
@@ -92,14 +91,17 @@ class EditAgente extends ComercialContactController
         $this->setSettings($viewName, 'btnNew', false);
     }
 
-    protected function createDocumentView(string $viewName, string $model, string $label)
+    protected function createDocumentView(string $viewName, string $model, string $label): void
     {
         $this->createCustomerListView($viewName, $model, $label);
+
+        // botones
+        $this->setSettings($viewName, 'btnPrint', true);
         $this->addButtonGroupDocument($viewName);
         $this->addButtonApproveDocument($viewName);
     }
 
-    protected function createEmailsView(string $viewName = 'ListEmailSent')
+    protected function createEmailsView(string $viewName = 'ListEmailSent'): void
     {
         $this->addListView($viewName, 'EmailSent', 'emails-sent', 'fas fa-envelope');
         $this->views[$viewName]->addOrderBy(['date'], 'date', 2);
@@ -112,9 +114,12 @@ class EditAgente extends ComercialContactController
         $this->setSettings($viewName, 'btnNew', false);
     }
 
-    protected function createInvoiceView(string $viewName)
+    protected function createInvoiceView(string $viewName): void
     {
         $this->createCustomerListView($viewName, 'FacturaCliente', 'invoices');
+
+        // botones
+        $this->setSettings($viewName, 'btnPrint', true);
         $this->addButtonLockInvoice($viewName);
     }
 

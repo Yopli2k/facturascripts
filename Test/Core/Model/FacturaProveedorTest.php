@@ -27,6 +27,7 @@ use FacturaScripts\Core\Lib\FacturaProveedorRenumber;
 use FacturaScripts\Core\Lib\InvoiceOperation;
 use FacturaScripts\Core\Lib\ProductType;
 use FacturaScripts\Core\Lib\RegimenIVA;
+use FacturaScripts\Core\Lib\Vies;
 use FacturaScripts\Core\Model\FacturaProveedor;
 use FacturaScripts\Test\Traits\DefaultSettingsTrait;
 use FacturaScripts\Test\Traits\LogErrorsTrait;
@@ -374,10 +375,10 @@ final class FacturaProveedorTest extends TestCase
         $this->assertEquals(100, $invoice->neto, 'bad-neto');
         $this->assertEquals(100, $invoice->netosindto, 'bad-netosindto');
         $this->assertEquals(21, $invoice->totaliva, 'bad-totaliva');
-        $this->assertEquals(5.2, $invoice->totalrecargo, 'bad-totalrecargo');
+        $this->assertEquals(0, $invoice->totalrecargo, 'bad-totalrecargo');
         $this->assertEquals(0, $invoice->totalirpf, 'bad-totalirpf');
         $this->assertEquals(0, $invoice->totalsuplidos, 'bad-totalsuplidos');
-        $this->assertEquals(126.2, $invoice->total, 'bad-total');
+        $this->assertEquals(121, $invoice->total, 'bad-total');
 
         // eliminamos
         $this->assertTrue($invoice->delete(), 'cant-delete-invoice');
@@ -575,6 +576,11 @@ final class FacturaProveedorTest extends TestCase
 
     public function testSetIntraCommunity(): void
     {
+        // comprobamos si el VIES funciona
+        if (Vies::getLastError() == 'MS_MAX_CONCURRENT_REQ') {
+            $this->markTestSkipped('Vies service is not available');
+        }
+
         // establecemos la empresa en España con un cif español
         $company = Empresas::default();
         $company->codpais = 'ESP';

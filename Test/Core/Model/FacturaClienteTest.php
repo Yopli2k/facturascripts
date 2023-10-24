@@ -25,6 +25,7 @@ use FacturaScripts\Core\DataSrc\Retenciones;
 use FacturaScripts\Core\Lib\InvoiceOperation;
 use FacturaScripts\Core\Lib\ProductType;
 use FacturaScripts\Core\Lib\RegimenIVA;
+use FacturaScripts\Core\Lib\Vies;
 use FacturaScripts\Core\Model\Ejercicio;
 use FacturaScripts\Core\Model\FacturaCliente;
 use FacturaScripts\Core\Model\Stock;
@@ -468,15 +469,15 @@ final class FacturaClienteTest extends TestCase
         $this->assertEquals(30.07, $invoice->neto, 'bad-neto');
         $this->assertEquals(30.07, $invoice->netosindto, 'bad-neto-sin-dto');
         $this->assertEquals(6.31, $invoice->totaliva, 'bad-total-iva');
-        $this->assertEquals(1.56, $invoice->totalrecargo, 'bad-total-recargo');
+        $this->assertEquals(0, $invoice->totalrecargo, 'bad-total-recargo');
         $this->assertEquals(0, $invoice->totalirpf, 'bad-total-irpf');
         $this->assertEquals(0, $invoice->totalsuplidos, 'bad-total-suplidos');
-        $this->assertEquals(37.94, $invoice->total, 'bad-total');
+        $this->assertEquals(36.38, $invoice->total, 'bad-total');
 
         // comprobamos también los subtotales, para ver que no hay más decimales de los necesarios
         $subtotals = Calculator::getSubtotals($invoice, $lines);
-        $this->assertEquals(6.31, $subtotals['iva']['21|5.2']['totaliva'], 'bad-subtotal-iva');
-        $this->assertEquals(1.56, $subtotals['iva']['21|5.2']['totalrecargo'], 'bad-subtotal-recargo');
+        $this->assertEquals(6.31, $subtotals['iva']['21|0']['totaliva'], 'bad-subtotal-iva');
+        $this->assertEquals(0, $subtotals['iva']['21|0']['totalrecargo'], 'bad-subtotal-recargo');
 
         // eliminamos
         $this->assertTrue($invoice->delete(), 'cant-delete-invoice');
@@ -718,6 +719,11 @@ final class FacturaClienteTest extends TestCase
 
     public function testSetIntraCommunity(): void
     {
+        // comprobamos primero si el VIES funciona
+        if (Vies::getLastError() == 'MS_MAX_CONCURRENT_REQ') {
+            $this->markTestSkipped('Vies service is not available');
+        }
+
         // establecemos la empresa en España con un cif español
         $company = Empresas::default();
         $company->codpais = 'ESP';
