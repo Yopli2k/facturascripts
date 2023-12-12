@@ -20,6 +20,7 @@
 namespace FacturaScripts\Core\Lib\ExtendedController;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\Tools;
 use FacturaScripts\Dinamic\Lib\BusinessDocumentGenerator;
 use FacturaScripts\Dinamic\Model\Cliente;
 use FacturaScripts\Dinamic\Model\Ejercicio;
@@ -58,7 +59,7 @@ abstract class ComercialContactController extends EditController
         $exercise = new Ejercicio();
         foreach ($exercise->all([], [], 0, 0) as $exe) {
             if ($exe->isOpened() && strlen($code) != $exe->longsubcuenta) {
-                $this->toolBox()->i18nLog()->warning('account-length-error', ['%code%' => $code]);
+                Tools::log()->warning('account-length-error', ['%code%' => $code]);
             }
         }
     }
@@ -71,7 +72,7 @@ abstract class ComercialContactController extends EditController
         }
 
         if ($model->checkVies()) {
-            self::toolBox()->i18nLog()->notice('vies-check-success', ['%vat-number%' => $model->cifnif]);
+            Tools::log()->notice('vies-check-success', ['%vat-number%' => $model->cifnif]);
         }
 
         return true;
@@ -110,10 +111,10 @@ abstract class ComercialContactController extends EditController
         $this->views[$viewName]->addOrderBy(['date'], 'date', 2);
         $this->views[$viewName]->addSearchFields(['addressee', 'body', 'subject']);
 
-        // disable column
+        // desactivamos la columna de destinatario
         $this->views[$viewName]->disableColumn('to');
 
-        // disable buttons
+        // desactivamos el botón nuevo
         $this->setSettings($viewName, 'btnNew', false);
     }
 
@@ -325,9 +326,10 @@ abstract class ComercialContactController extends EditController
      */
     protected function loadData($viewName, $view)
     {
-        $mainViewName = $this->getMainViewName();
+        $mvn = $this->getMainViewName();
+
         switch ($viewName) {
-            case $mainViewName:
+            case $mvn:
                 parent::loadData($viewName, $view);
                 $this->setCustomWidgetValues($viewName);
                 if ($view->model->exists() && $view->model->cifnif) {
@@ -345,17 +347,30 @@ abstract class ComercialContactController extends EditController
                 break;
 
             case 'ListSubcuenta':
-                $codsubcuenta = $this->getViewModelValue($mainViewName, 'codsubcuenta');
+                $codsubcuenta = $this->getViewModelValue($mvn, 'codsubcuenta');
                 $where = [new DataBaseWhere('codsubcuenta', $codsubcuenta)];
                 $view->loadData('', $where);
                 $this->setSettings($viewName, 'active', $view->count > 0);
                 break;
 
             case 'ListEmailSent':
-                $addressee = $this->getViewModelValue($mainViewName, 'email');
-                $where = [new DataBaseWhere('addressee', $addressee)];
+                $email = $this->getViewModelValue($mvn, 'email');
+                if (empty($email)) {
+                    $this->setSettings($viewName, 'active', false);
+                    break;
+                }
+
+                $where = [new DataBaseWhere('addressee', $email)];
                 $view->loadData('', $where);
-                $this->setSettings($viewName, 'active', $view->count > 0);
+
+                // añadimos un botón para enviar un nuevo email
+                $this->addButton($viewName, [
+                    'action' => 'SendMail?email=' . $email,
+                    'color' => 'success',
+                    'icon' => 'fas fa-envelope',
+                    'label' => 'send',
+                    'type' => 'link'
+                ]);
                 break;
         }
     }
