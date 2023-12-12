@@ -22,6 +22,7 @@ namespace FacturaScripts\Core\Controller;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use FacturaScripts\Core\Lib\ExtendedController\BaseView;
 use FacturaScripts\Core\Lib\ExtendedController\EditController;
+use FacturaScripts\Core\Tools;
 use FacturaScripts\Dinamic\Model\Almacen;
 use FacturaScripts\Dinamic\Model\Page;
 use FacturaScripts\Dinamic\Model\RoleUser;
@@ -84,18 +85,20 @@ class EditUser extends EditController
         $this->setTabsPosition('top');
 
         // disable company column if there is only one company
+        $mvn = $this->getMainViewName();
         if ($this->empresa->count() < 2) {
-            $this->views[$this->getMainViewName()]->disableColumn('company');
+            $this->views[$mvn]->disableColumn('company');
         }
 
         // disable warehouse column if there is only one company
         $almacen = new Almacen();
         if ($almacen->count() < 2) {
-            $this->views[$this->getMainViewName()]->disableColumn('warehouse');
+            $this->views[$mvn]->disableColumn('warehouse');
         }
 
-        // disable print button
-        $this->setSettings($this->getMainViewName(), 'btnPrint', false);
+        // disable options and print buttons
+        $this->setSettings($mvn, 'btnOptions', false);
+        $this->setSettings($mvn, 'btnPrint', false);
 
         // add roles tab
         if ($this->user->admin) {
@@ -137,7 +140,7 @@ class EditUser extends EditController
 
         // Are we changing user language?
         if ($result && $this->views['EditUser']->model->nick === $this->user->nick) {
-            $this->toolBox()->i18n()->setLang($this->views['EditUser']->model->langcode);
+            Tools::lang()->setLang($this->views['EditUser']->model->langcode);
 
             $expire = time() + FS_COOKIES_EXPIRE;
             $this->response->headers->setCookie(
@@ -251,7 +254,7 @@ class EditUser extends EditController
         $columnLangCode = $this->views['EditUser']->columnForName('language');
         if ($columnLangCode && $columnLangCode->widget->getType() === 'select') {
             $langs = [];
-            foreach ($this->toolBox()->i18n()->getAvailableLanguages() as $key => $value) {
+            foreach (Tools::lang()->getAvailableLanguages() as $key => $value) {
                 $langs[] = ['value' => $key, 'title' => $value];
             }
 
