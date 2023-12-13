@@ -20,6 +20,7 @@
 namespace FacturaScripts\Core\Error;
 
 use FacturaScripts\Core\Template\ErrorController;
+use FacturaScripts\Core\Tools;
 use Twig\Error\LoaderError;
 use Twig\Error\RuntimeError;
 use Twig\Error\SyntaxError;
@@ -65,6 +66,36 @@ class DefaultError extends ErrorController
             . '<p>' . $this->exception->getMessage() . '</p>'
             . '<p>File: ' . $this->exception->getFile() . ':' . $this->exception->getLine() . '</p>';
 
-        echo $this->htmlCard($title, $body, 'bg-danger');
+        $table = $this->getTrace();
+
+        echo $this->htmlCard($title, $body, 'bg-danger', $table);
+    }
+
+    protected function getTrace(): string
+    {
+        $table = '';
+        if (Tools::config('debug', false)) {
+            $table .= '<div class="table-responsive">'
+                . '<table class="table table-striped mb-0">'
+                . '<thead><tr><th>#</th></th><th>Trace</th></tr></thead>'
+                . '<tbody>';
+
+            foreach (array_reverse($this->exception->getTrace()) as $num => $trace) {
+                $text = isset($trace['file']) ?
+                    $this->removePathFromFile($trace['file']) . ':' . $trace['line'] :
+                    '[internal function]: ' . $trace['class'] . $trace['type'] . $trace['function'];
+
+                $table .= '<tr><td>' . (1 + $num) . '</td><td>' . $text . '</td></tr>';
+            }
+
+            $table .= '</tbody></table></div>';
+        }
+
+        return $table;
+    }
+
+    protected function removePathFromFile(string $file): string
+    {
+        return substr($file, 1 + strlen(Tools::folder()));
     }
 }
