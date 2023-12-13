@@ -63,7 +63,7 @@ final class Kernel
     public static function getErrorInfo(int $code, string $message, string $file, int $line): array
     {
         // calculamos un hash para el error, de forma que en la web podamos dar respuesta automáticamente
-        $errorUrl = parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH);
+        $errorUrl = parse_url($_SERVER["REQUEST_URI"] ?? '', PHP_URL_PATH);
         $errorMessage = self::cleanErrorMessage($message);
         $errorFile = str_replace(FS_FOLDER, '', $file);
         $errorHash = md5($code . $errorFile . $line . $errorMessage);
@@ -112,6 +112,8 @@ final class Kernel
     public static function init(): void
     {
         self::startTimer('kernel::init');
+
+        ob_start();
 
         // cargamos algunas constantes para dar soporte a versiones antiguas
         $constants = [
@@ -233,6 +235,8 @@ final class Kernel
             return;
         }
 
+        $messageParts = explode("\nStack trace:\n", $info['message']);
+
         echo '<!doctype html>'
             . '<html lang="en">'
             . '<head>'
@@ -250,7 +254,7 @@ final class Kernel
             . '<div class="card-body">'
             . '<img src="' . $info['report_qr'] . '" alt="' . $info['hash'] . '" class="float-end">'
             . '<h1 class="mt-0">Fatal error #' . $info['code'] . '</h1>'
-            . '<p>' . nl2br($info['message']) . '</p>'
+            . '<p>' . nl2br($messageParts[0]) . '</p>'
             . '<p class="mb-0">Url: ' . $info['url'] . '</p>';
 
         if (Tools::config('debug', false)) {
@@ -264,8 +268,23 @@ final class Kernel
                 . '<p class="mb-0">PHP: ' . $info['php_version'] . ', OS: ' . $info['os'] . '</p>';
         }
 
-        echo '</div>'
-            . '<div class="card-footer">'
+        echo '</div>';
+
+        if (Tools::config('debug', false)) {
+            echo '<div class="table-responsive">'
+                . '<table class="table table-striped mb-0">'
+                . '<thead><tr><th>#</th><th>Trace</th></tr></thead>'
+                . '<tbody>';
+
+            $trace = explode("\n", $messageParts[1]);
+            foreach (array_reverse($trace) as $key => $value) {
+                echo '<tr><td>' . (1 + $key) . '</td><td>' . substr($value, 3) . '</td></tr>';
+            }
+
+            echo '</tbody></table></div>';
+        }
+
+        echo '<div class="card-footer">'
             . '<form method="post" action="' . $info['report_url'] . '" target="_blank">'
             . '<input type="hidden" name="error_code" value="' . $info['code'] . '">'
             . '<input type="hidden" name="error_message" value="' . $info['message'] . '">'
@@ -306,7 +325,7 @@ final class Kernel
 
     public static function version(): float
     {
-        return 2023.15;
+        return 2023.16;
     }
 
     private static function cleanErrorMessage(string $message): string
