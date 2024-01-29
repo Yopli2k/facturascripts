@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2023 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2023-2024 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -25,7 +25,7 @@ final class CrashReport
     {
         // calculamos un hash para el error, de forma que en la web podamos dar respuesta automáticamente
         $errorUrl = parse_url($_SERVER["REQUEST_URI"] ?? '', PHP_URL_PATH);
-        $errorMessage = self::cleanErrorMessage($message);
+        $errorMessage = self::formatErrorMessage($message);
         $errorFile = str_replace(FS_FOLDER, '', $file);
         $errorHash = md5($code . $errorFile . $line . $errorMessage);
         $reportUrl = 'https://facturascripts.com/errores/' . $errorHash;
@@ -75,7 +75,7 @@ final class CrashReport
     public static function shutdown(): void
     {
         $error = error_get_last();
-        if (!isset($error)) {
+        if (!isset($error) || in_array($error['type'], [E_WARNING, E_NOTICE, E_DEPRECATED])) {
             return;
         }
 
@@ -148,7 +148,7 @@ final class CrashReport
             $num = 1;
             $trace = explode("\n", $messageParts[1]);
             foreach (array_reverse($trace) as $value) {
-                if (trim($value) === 'thrown') {
+                if (trim($value) === 'thrown' || substr($value, 3) === '{main}') {
                     continue;
                 }
 
@@ -156,6 +156,7 @@ final class CrashReport
                 $num++;
             }
 
+            echo '<tr><td>' . $num . '</td><td>' . $info['file'] . ':' . $info['line'] . '</td></tr>';
             echo '</tbody></table></div>';
         }
 
@@ -200,9 +201,21 @@ final class CrashReport
         return $token === self::newToken();
     }
 
-    private static function cleanErrorMessage(string $message): string
+    private static function formatErrorMessage(string $message): string
     {
-        return str_replace([FS_FOLDER, 'Stack trace:'], ['', "\nStack trace:"], $message);
+        // quitamos el folder de las rutas
+        $message = str_replace(FS_FOLDER, '', $message);
+
+        // partimos por la traza
+        $messageParts = explode("Stack trace:", $message);
+
+        // si hay error de json, lo añadimos al mensaje
+        if (json_last_error()) {
+            $messageParts[0] .= "\n" . json_last_error_msg();
+        }
+
+        // ahora volvemos a unir el mensaje
+        return implode("\nStack trace:", $messageParts);
     }
 
     private static function trans(string $code): string
