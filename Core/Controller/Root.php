@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2023 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2024 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -19,31 +19,27 @@
 
 namespace FacturaScripts\Core\Controller;
 
-use FacturaScripts\Core\Lib\ExtendedController\EditController;
+use FacturaScripts\Core\Base\Controller;
 
-class EditWorkEvent extends EditController
+class Root extends Controller
 {
-    public function getModelClassName(): string
-    {
-        return "WorkEvent";
-    }
-
     public function getPageData(): array
     {
         $data = parent::getPageData();
-        $data["menu"] = "admin";
-        $data["title"] = "WorkEvent";
-        $data["icon"] = "fas fa-search";
+        $data['menu'] = 'reports';
+        $data['title'] = 'root';
+        $data['icon'] = 'fas fa-home';
+        $data['showonmenu'] = false;
         return $data;
     }
 
-    protected function createViews()
+    public function privateCore(&$response, $user, $permissions)
     {
-        parent::createViews();
-        $this->setTabsPosition('bottom');
+        parent::privateCore($response, $user, $permissions);
 
-        // desactivamos el botón nuevo
-        $mvn = $this->getMainViewName();
-        $this->setSettings($mvn, 'btnNew', false);
+        // si el usuario tiene homepage y es distinta de Root, redirigimos
+        if (!empty($this->user->homepage) && $this->user->homepage !== 'Root') {
+            $this->redirect($this->user->homepage);
+        }
     }
 }
