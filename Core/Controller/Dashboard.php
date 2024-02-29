@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2023 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2024 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -85,7 +85,7 @@ class Dashboard extends Controller
      * @param User $user
      * @param ControllerPermissions $permissions
      */
-    public function privateCore(&$response, $user, $permissions)
+    public function privateCore(&$response, $user, $permissions): void
     {
         parent::privateCore($response, $user, $permissions);
 
@@ -138,7 +138,7 @@ class Dashboard extends Controller
 
         return [
             new DataBaseWhere($field, $fromDate, '>='),
-            new DataBaseWhere($field, $untilDate, '<')
+            new DataBaseWhere($field, $untilDate, '<'),
         ];
     }
 
@@ -200,20 +200,11 @@ class Dashboard extends Controller
      */
     private function loadNews(): void
     {
-        // buscamos en la caché
-        $news = Cache::get('dashboard-news');
-        if ($news !== null) {
-            $this->news = $news;
-            return;
-        }
-
-        // si no está en caché, consultamos a facturascripts.com
-        $this->news = Http::get('https://facturascripts.com/comm3/index.php?page=community_changelog&json=TRUE')
-            ->setTimeout(5)
-            ->json();
-
-        // guardamos en caché
-        Cache::set('dashboard-news', $this->news);
+        $this->news = Cache::remember('dashboard-news', function () {
+            return Http::get('https://facturascripts.com/comm3/index.php?page=community_changelog&json=TRUE')
+                ->setTimeout(5)
+                ->json();
+        });
     }
 
     /**
@@ -226,8 +217,8 @@ class Dashboard extends Controller
         $this->setOpenLinksForDocument(new PedidoCliente(), 'order');
         $this->setOpenLinksForDocument(new PresupuestoCliente(), 'estimation');
 
-        $minDate = date(Producto::DATE_STYLE, strtotime('-2 days'));
-        $minDateTime = date(Producto::DATETIME_STYLE, strtotime('-2 days'));
+        $minDate = Tools::date('-2 days');
+        $minDateTime = Tools::dateTime('-2 days');
 
         $customerModel = new Cliente();
         $whereCustomer = [new DataBaseWhere('fechaalta', $minDate, '>=')];
@@ -236,7 +227,7 @@ class Dashboard extends Controller
                 'type' => 'customer',
                 'url' => $customer->url(),
                 'name' => $customer->nombre,
-                'date' => $customer->fechaalta
+                'date' => $customer->fechaalta,
             ];
         }
 
@@ -247,7 +238,7 @@ class Dashboard extends Controller
                 'type' => 'contact',
                 'url' => $contact->url(),
                 'name' => $contact->fullName(),
-                'date' => $contact->fechaalta
+                'date' => $contact->fechaalta,
             ];
         }
 
@@ -258,7 +249,7 @@ class Dashboard extends Controller
                 'type' => 'product',
                 'url' => $product->url(),
                 'name' => $product->referencia,
-                'date' => $product->actualizado
+                'date' => $product->actualizado,
             ];
         }
 
@@ -274,7 +265,7 @@ class Dashboard extends Controller
         $where = [
             new DataBaseWhere('pagado', false),
             new DataBaseWhere('vencimiento', Tools::date(), '<'),
-            new DataBaseWhere('vencimiento', date('Y-m-d', strtotime('-1 year')), '>')
+            new DataBaseWhere('vencimiento', date('Y-m-d', strtotime('-1 year')), '>'),
         ];
         $this->receipts = $receiptModel->all($where, ['vencimiento' => 'DESC']);
 
@@ -331,14 +322,14 @@ class Dashboard extends Controller
         $minDate = Tools::date('-2 days');
         $where = [
             new DataBaseWhere('fecha', $minDate, '>='),
-            new DataBaseWhere('nick', $this->user->nick)
+            new DataBaseWhere('nick', $this->user->nick),
         ];
         foreach ($model->all($where, [$model->primaryColumn() => 'DESC'], 0, 3) as $doc) {
             $this->openLinks[] = [
                 'type' => $label,
                 'url' => $doc->url(),
                 'name' => $doc->codigo,
-                'date' => $doc->fecha
+                'date' => $doc->fecha,
             ];
         }
     }
