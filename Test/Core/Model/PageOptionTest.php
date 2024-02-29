@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2023 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2024 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -17,18 +17,21 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace FacturaScripts\Core\Error;
+namespace FacturaScripts\Test\Core\Model;
 
-use FacturaScripts\Core\Template\ErrorController;
-use FacturaScripts\Core\Tools;
+use FacturaScripts\Core\Model\PageOption;
+use PHPUnit\Framework\TestCase;
 
-class AlreadyInstalled extends ErrorController
+final class PageOptionTest extends TestCase
 {
-    public function run(): void
+    public function testCreate(): void
     {
-        http_response_code(403);
+        // creamos
+        $pageOption = new PageOption();
+        $pageOption->name = 'test';
+        $this->assertTrue($pageOption->save(), 'Error saving PageOption');
 
-        echo '<h1>' . Tools::lang()->trans('already-installed') . '</h1>';
-        echo '<p>' . $this->exception->getMessage() . '</p>';
+        // eliminamos
+        $this->assertTrue($pageOption->delete(), 'Error deleting PageOption');
     }
 }

@@ -26,6 +26,9 @@
                                     <p class="text-muted mb-0">
                                         {{ trans('help-server-accepts-filesize', {'%size%': currentView.model.getMaxFileUpload()}) }}
                                     </p>
+                                    {% for item in getIncludeViews('DocFiles', 'formAddBody') %}
+                                        {% include item['path'] %}
+                                    {% endfor %}
                                 </div>
                                 <div class="col text-right">
                                     <button type="submit" class="btn btn-sm btn-success">
@@ -75,6 +78,9 @@
                                 <textarea name="observations" class="form-control"
                                           placeholder="{{ trans('observations') }}">{{ docfile.observations | raw }}</textarea>
                                 </div>
+                                {% for item in getIncludeViews('DocFiles', 'formEditBody') %}
+                                    {% include item['path'] %}
+                                {% endfor %}
                                 <p class="card-text text-muted">
                                     {% if docfile.nick %}
                                         <i class="fas fa-user"></i> {{ docfile.nick }}
@@ -100,13 +106,13 @@
                                             <div class="dropdown-menu">
                                                 <button type="button"
                                                         onclick="this.form.action.value='unlink-file';this.form.onsubmit();this.form.submit();"
-                                                        class="dropdown-item" href="#">
+                                                        class="dropdown-item">
                                                     <i class="fas fa-unlink fa-fw"></i> {{ trans('unlink-file') }}
                                                 </button>
                                                 <div class="dropdown-divider"></div>
                                                 <button type="button"
                                                         onclick="this.form.action.value='delete-file';this.form.submit();"
-                                                        class="dropdown-item" href="#">
+                                                        class="dropdown-item">
                                                     <i class="far fa-trash-alt fa-fw"></i> {{ trans('delete-file') }}
                                                 </button>
                                             </div>
