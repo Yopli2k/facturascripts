@@ -110,9 +110,12 @@ final class Kernel
         ToolBox::i18n()->setDefaultLang($lang);
 
         // workers
-        WorkQueue::addWorker('CuentaWorker', 'Model.Cuenta.*');
-        WorkQueue::addWorker('CuentaWorker', 'Model.Subcuenta.*');
-        WorkQueue::addWorker('PartidaWorker', 'Model.Partida.*');
+        WorkQueue::addWorker('CuentaWorker', 'Model.Cuenta.Delete');
+        WorkQueue::addWorker('CuentaWorker', 'Model.Cuenta.Update');
+        WorkQueue::addWorker('CuentaWorker', 'Model.Subcuenta.Delete');
+        WorkQueue::addWorker('CuentaWorker', 'Model.Subcuenta.Update');
+        WorkQueue::addWorker('PartidaWorker', 'Model.Partida.Delete');
+        WorkQueue::addWorker('PartidaWorker', 'Model.Partida.Save');
 
         self::stopTimer('kernel::init');
     }
@@ -203,7 +206,7 @@ final class Kernel
 
     public static function version(): float
     {
-        return 2024.3;
+        return 2024.4;
     }
 
     private static function getErrorHandler(Exception $exception): ErrorControllerInterface
