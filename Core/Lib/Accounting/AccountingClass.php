@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2018-2023 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2018-2024 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -121,12 +121,21 @@ abstract class AccountingClass extends AccountingAccounts
         /// add basic data
         $line = $this->getBasicLine($accountEntry, $subaccount, $isDebit, $amount);
 
-        /// counterpart?
+        // counterpart?
         if (!empty($counterpart)) {
             $line->setCounterpart($counterpart);
         }
 
-        /// save new line
+        // add tax register data
+        $line->baseimponible = (float)$values['neto'];
+        $line->iva = 0;
+        $line->recargo = (float)$values['recargo'];
+        $line->cifnif = $this->document->cifnif;
+        $line->codserie = $this->document->codserie;
+        $line->documento = $this->document->codigo;
+        $line->factura = $this->document->numero;
+
+        // save new line
         return $line->save();
     }
 
@@ -148,12 +157,12 @@ abstract class AccountingClass extends AccountingAccounts
         $amount = round($values['totaliva'], FS_NF0);
         $line = $this->getBasicLine($accountEntry, $subaccount, $isDebit, $amount);
 
-        /// counterpart?
+        // counterpart?
         if (!empty($counterpart)) {
             $line->setCounterpart($counterpart);
         }
 
-        /// add tax register data
+        // add tax register data
         $line->baseimponible = (float)$values['neto'];
         $line->iva = (float)$values['iva'];
         $line->recargo = (float)$values['recargo'];
@@ -162,7 +171,7 @@ abstract class AccountingClass extends AccountingAccounts
         $line->documento = $this->document->codigo;
         $line->factura = $this->document->numero;
 
-        /// save new line
+        // save new line
         return $line->save();
     }
 
@@ -183,10 +192,13 @@ abstract class AccountingClass extends AccountingAccounts
 
         $total = ($amount === null) ? $this->document->total : $amount;
         if ($isDebit) {
-            $line->debe = $total;
-        } else {
-            $line->haber = $total;
+            $line->debe = max($total, 0);
+            $line->haber = $total < 0 ? abs($total) : 0;
+            return $line;
         }
+
+        $line->debe = $total < 0 ? abs($total) : 0;
+        $line->haber = max($total, 0);
         return $line;
     }
 
