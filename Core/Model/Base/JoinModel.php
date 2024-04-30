@@ -235,6 +235,7 @@ abstract class JoinModel
     public function getModelFields(): array
     {
         $fields = [];
+        $tables = $this->getTables();
         foreach ($this->getFields() as $key => $field) {
             $fields[$key] = [
                 'name' => $field,
@@ -249,6 +250,10 @@ abstract class JoinModel
             // extraemos el nombre de la tabla
             $arrayField = explode('.', $field);
             if (false === is_array($arrayField) && false === isset($arrayField[0])) {
+                continue;
+            }
+
+            if (false === in_array($arrayField[0], $tables)) {
                 continue;
             }
 
