@@ -464,6 +464,11 @@ abstract class BaseController extends Controller
         $required = (bool)$this->request->get('required', false);
         $data = $this->requestGet(['field', 'fieldcode', 'fieldfilter', 'fieldtitle', 'formname', 'source', 'term']);
 
+        $return = $this->pipe('selectAction', $data, $required);
+        if ($return) {
+            return $return;
+        }
+
         $where = [];
         foreach (DataBaseWhere::applyOperation($data['fieldfilter'] ?? '') as $field => $operation) {
             $where[] = new DataBaseWhere($field, $data['term'], '=', $operation);
@@ -471,7 +476,8 @@ abstract class BaseController extends Controller
 
         $results = [];
         foreach ($this->codeModel->all($data['source'], $data['fieldcode'], $data['fieldtitle'], !$required, $where) as $value) {
-            $results[] = ['key' => Tools::fixHtml($value->code), 'value' => Tools::fixHtml($value->description)];
+            // no usar fixHtml() aquí porque compromete la seguridad
+            $results[] = ['key' => $value->code, 'value' => $value->description];
         }
         return $results;
     }

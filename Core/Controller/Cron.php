@@ -20,11 +20,24 @@
 namespace FacturaScripts\Core\Controller;
 
 use Exception;
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use FacturaScripts\Core\Contract\ControllerInterface;
 use FacturaScripts\Core\Kernel;
 use FacturaScripts\Core\Plugins;
 use FacturaScripts\Core\Tools;
 use FacturaScripts\Core\WorkQueue;
+use FacturaScripts\Dinamic\Model\AlbaranCliente;
+use FacturaScripts\Dinamic\Model\AlbaranProveedor;
+use FacturaScripts\Dinamic\Model\AttachedFileRelation;
+use FacturaScripts\Dinamic\Model\CronJob;
+use FacturaScripts\Dinamic\Model\FacturaCliente;
+use FacturaScripts\Dinamic\Model\FacturaProveedor;
+use FacturaScripts\Dinamic\Model\LogMessage;
+use FacturaScripts\Dinamic\Model\PedidoCliente;
+use FacturaScripts\Dinamic\Model\PedidoProveedor;
+use FacturaScripts\Dinamic\Model\PresupuestoCliente;
+use FacturaScripts\Dinamic\Model\PresupuestoProveedor;
+use FacturaScripts\Dinamic\Model\WorkEvent;
 
 class Cron implements ControllerInterface
 {
@@ -53,13 +66,15 @@ class Cron implements ControllerInterface
                                                        |_|
 END;
 
-        echo PHP_EOL . PHP_EOL . Tools::lang()->trans('starting-cron');
         Tools::log('cron')->notice('starting-cron');
-
+        echo PHP_EOL . PHP_EOL . Tools::lang()->trans('starting-cron');
         ob_flush();
 
         // ejecutamos el cron de cada plugin
         $this->runPlugins();
+
+        // ejecutamos los trabajos del core
+        $this->runCoreJobs();
 
         // si se está ejecutando en modo cli, ejecutamos la cola de trabajos, máximo 100 trabajos
         $max = 100;
@@ -85,6 +100,7 @@ END;
             ob_flush();
         }
 
+        // mensaje de finalización
         $context = [
             '%timeNeeded%' => Kernel::getExecutionTime(3),
             '%memoryUsed%' => $this->getMemorySize(memory_get_peak_usage())
@@ -97,6 +113,76 @@ END;
     {
         $unit = ['b', 'kb', 'mb', 'gb', 'tb', 'pb'];
         return round($size / pow(1024, ($i = floor(log($size, 1024)))), 2) . $unit[$i];
+    }
+
+    private function job(string $name): CronJob
+    {
+        $job = new CronJob();
+        $where = [
+            new DataBaseWhere('jobname', $name),
+            new DataBaseWhere('pluginname', null, 'IS')
+        ];
+        if (false === $job->loadFromCode('', $where)) {
+            // no se había ejecutado nunca, lo creamos
+            $job->jobname = $name;
+        }
+
+        return $job;
+    }
+
+    protected function removeOldLogs(): void
+    {
+        $maxDays = Tools::settings('default', 'days_log_retention', 90);
+        if ($maxDays <= 0) {
+            return;
+        }
+
+        $minDate = Tools::dateTime('-' . $maxDays . ' days');
+        echo PHP_EOL . PHP_EOL . Tools::lang()->trans('removing-logs-until', ['%date%' => $minDate]) . ' ... ';
+        ob_flush();
+
+        $query = LogMessage::table()
+            ->whereNotEq('channel', 'audit')
+            ->whereLt('time', $minDate);
+
+        if (false === $query->delete()) {
+            Tools::log('cron')->warning('old-logs-delete-error');
+            return;
+        }
+
+        Tools::log('cron')->notice('old-logs-delete-ok');
+
+        // eliminamos los eventos de trabajo antiguos
+        $this->removeOldWorkEvents($minDate);
+    }
+
+    protected function removeOldWorkEvents(string $minDate): void
+    {
+        $query = WorkEvent::table()
+            ->whereEq('done', true)
+            ->whereLt('creation_date', $minDate);
+
+        if (false === $query->delete()) {
+            Tools::log('cron')->warning('old-work-events-delete-error');
+            return;
+        }
+
+        Tools::log('cron')->notice('old-work-events-delete-ok');
+    }
+
+    protected function runCoreJobs(): void
+    {
+        $this->job('update-attached-relations')
+            ->every('1 day')
+            ->run(function () {
+                $this->updateAttachedRelations();
+            });
+
+        $this->job('remove-old-logs')
+            ->every('1 week')
+            ->run(function () {
+                $this->removeOldLogs();
+            });
     }
 
     protected function runPlugins(): void
@@ -124,6 +210,58 @@ END;
             if (PHP_SAPI != 'cli' && Kernel::getExecutionTime() > 20) {
                 break;
             }
+        }
+    }
+
+    protected function updateAttachedRelations(): void
+    {
+        echo PHP_EOL . PHP_EOL . Tools::lang()->trans('updating-attached-relations') . ' ... ';
+        ob_flush();
+
+        // si no hay relaciones con archivos adjuntos, terminamos
+        $relationModel = new AttachedFileRelation();
+        if (0 === $relationModel->count()) {
+            return;
+        }
+
+        // elegimos un modelo al azar
+        $models = [
+            new AlbaranCliente(), new FacturaCliente(), new PedidoCliente(), new PresupuestoCliente(),
+            new AlbaranProveedor(), new FacturaProveedor(), new PedidoProveedor(), new PresupuestoProveedor()
+        ];
+        shuffle($models);
+        echo $models[0]->modelClassName();
+        ob_flush();
+
+        // recorremos todos los documentos
+        $limit = 100;
+        $offset = 0;
+        $orderBy = ['codigo' => 'ASC'];
+        $documents = $models[0]->all([], $orderBy, 0, $limit);
+        while (!empty($documents)) {
+            foreach ($documents as $doc) {
+                $where = [new DataBaseWhere('model', $doc->modelClassName())];
+                $where[] = is_numeric($doc->primaryColumnValue()) ?
+                    new DataBaseWhere('modelid|modelcode', $doc->primaryColumnValue()) :
+                    new DataBaseWhere('modelcode', $doc->primaryColumnValue());
+
+                $num = $relationModel->count($where);
+                if ($num == $doc->numdocs) {
+                    continue;
+                }
+
+                $doc->numdocs = $num;
+                if (false === $doc->save()) {
+                    Tools::log('cron')->error('record-save-error', [
+                        '%model%' => $doc->modelClassName(),
+                        '%id%' => $doc->primaryColumnValue()
+                    ]);
+                    break;
+                }
+            }
+
+            $offset += $limit;
+            $documents = $models[0]->all([], $orderBy, $offset, $limit);
         }
     }
 }
