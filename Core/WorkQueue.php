@@ -109,8 +109,8 @@ final class WorkQueue
             // worker encontrado, guardamos el evento
             $work_event = new WorkEvent();
             $work_event->name = $event;
-            $work_event->params = json_encode($params, JSON_PRETTY_PRINT);
             $work_event->value = $value;
+            $work_event->setParams($params);
             return $work_event->save();
         }
 
@@ -143,6 +143,11 @@ final class WorkQueue
 
     private static function runEvent(WorkEvent &$event): bool
     {
+        // creamos un bloqueo para evitar que se ejecute el mismo evento varias veces
+        if (false === Kernel::lock('work-queue-' . $event->name)) {
+            return false;
+        }
+
         // ordenamos los workers por posición
         usort(self::$workers_list, function ($a, $b) {
             return $a['position'] <=> $b['position'];
@@ -192,6 +197,11 @@ final class WorkQueue
         $event->done_date = Tools::dateTime();
         $event->workers = count($worker_list);
         $event->worker_list = implode(',', $worker_list);
-        return $event->save();
+        $return = $event->save();
+
+        // liberamos el bloqueo
+        Kernel::unlock('work-queue-' . $event->name);
+
+        return $return;
     }
 }

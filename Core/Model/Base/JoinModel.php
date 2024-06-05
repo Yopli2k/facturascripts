@@ -253,7 +253,8 @@ abstract class JoinModel
                 continue;
             }
 
-            if (false === in_array($arrayField[0], $tables)) {
+            // comprobamos si existe la tabla
+            if (false === in_array($arrayField[0], $this->getTables())) {
                 continue;
             }
 
