@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2023 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2024 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -89,6 +89,7 @@ final class Plugins
         }
 
         // si el plugin estaba activado, marcamos el post_enable
+        $plugin = self::get($plugin->name);
         if ($plugin->enabled) {
             $plugin->post_enable = true;
             $plugin->post_disable = false;
@@ -115,6 +116,9 @@ final class Plugins
             $clean
         );
 
+        Kernel::rebuildRoutes();
+        Kernel::saveRoutes();
+
         if ($initControllers) {
             $pluginDeploy->initControllers();
         }
@@ -124,7 +128,9 @@ final class Plugins
     {
         // si el plugin no existe o ya está desactivado, no hacemos nada
         $plugin = self::get($pluginName);
-        if (null === $plugin || false === $plugin->enabled) {
+        if (null === $plugin) {
+            return false;
+        } elseif ($plugin->disabled()) {
             return true;
         }
 
@@ -151,7 +157,9 @@ final class Plugins
     {
         // si el plugin no existe o ya está activado, no hacemos nada
         $plugin = self::get($pluginName);
-        if (null === $plugin || $plugin->enabled) {
+        if (null === $plugin) {
+            return false;
+        } elseif ($plugin->enabled) {
             return true;
         }
 
@@ -204,7 +212,7 @@ final class Plugins
 
     public static function folder(): string
     {
-        return FS_FOLDER . DIRECTORY_SEPARATOR . 'Plugins';
+        return Tools::folder('Plugins');
     }
 
     public static function get(string $pluginName): ?Plugin
@@ -221,10 +229,11 @@ final class Plugins
 
     public static function init(): void
     {
+        Kernel::startTimer('plugins::init');
         $save = false;
 
         // ejecutamos los procesos init de los plugins
-        foreach (self::list(true) as $plugin) {
+        foreach (self::list(true, 'order') as $plugin) {
             if ($plugin->init()) {
                 $save = true;
             }
@@ -233,6 +242,8 @@ final class Plugins
         if ($save) {
             self::save();
         }
+
+        Kernel::stopTimer('plugins::init');
     }
 
     public static function isEnabled(string $pluginName): bool
@@ -240,11 +251,18 @@ final class Plugins
         return in_array($pluginName, self::enabled());
     }
 
+    public static function isInstalled(string $pluginName): bool
+    {
+        $plugin = self::get($pluginName);
+        return empty($plugin) ? false : $plugin->installed;
+    }
+
     /**
      * @param bool $hidden
+     * @param string $orderBy
      * @return Plugin[]
      */
-    public static function list(bool $hidden = false): array
+    public static function list(bool $hidden = false, string $orderBy = 'name'): array
     {
         $list = [];
 
@@ -255,10 +273,22 @@ final class Plugins
             }
         }
 
-        // ordenamos por name
-        usort($list, function ($a, $b) {
-            return strcasecmp($a->name, $b->name);
-        });
+        // ordenamos
+        switch ($orderBy) {
+            default:
+                // ordenamos por nombre
+                usort($list, function ($a, $b) {
+                    return strcasecmp($a->name, $b->name);
+                });
+                break;
+
+            case 'order':
+                // ordenamos por orden
+                usort($list, function ($a, $b) {
+                    return $a->order - $b->order;
+                });
+                break;
+        }
 
         return $list;
     }
@@ -305,7 +335,7 @@ final class Plugins
 
     private static function loadFromFile(): void
     {
-        $filePath = FS_FOLDER . DIRECTORY_SEPARATOR . 'MyFiles' . DIRECTORY_SEPARATOR . self::FILE_NAME;
+        $filePath = Tools::folder('MyFiles', self::FILE_NAME);
         if (false === file_exists($filePath)) {
             return;
         }
@@ -380,8 +410,11 @@ final class Plugins
             break;
         }
 
+        // si la carpeta MyFiles no existe, la creamos
+        Tools::folderCheckOrCreate(Tools::folder('MyFiles'));
+
         $json = json_encode(self::$plugins, JSON_PRETTY_PRINT);
-        file_put_contents(FS_FOLDER . DIRECTORY_SEPARATOR . 'MyFiles' . DIRECTORY_SEPARATOR . self::FILE_NAME, $json);
+        file_put_contents(Tools::folder('MyFiles', self::FILE_NAME), $json);
     }
 
     private static function testZipFile(ZipArchive &$zipFile, string $zipPath, string $zipName): bool

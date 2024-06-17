@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2019-2023 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2019-2024 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -20,7 +20,6 @@
 namespace FacturaScripts\Core;
 
 use FacturaScripts\Core\Base\MiniLog;
-use FacturaScripts\Core\Base\Translator;
 use FacturaScripts\Core\DataSrc\Divisas;
 use FacturaScripts\Core\Model\Settings;
 
@@ -43,11 +42,28 @@ class Tools
     const HTML_REPLACEMENTS = ['&lt;', '&gt;', '&quot;', '&#39;'];
 
     /** @var array */
-    private static $settings = [];
+    private static $settings;
 
     public static function ascii(string $text): string
     {
         return strtr($text, self::ASCII);
+    }
+
+    public static function bytes($size, int $decimals = 2): string
+    {
+        if ($size >= 1073741824) {
+            return self::number($size / 1073741824, $decimals) . ' GB';
+        } elseif ($size >= 1048576) {
+            return self::number($size / 1048576, $decimals) . ' MB';
+        } elseif ($size >= 1024) {
+            return self::number($size / 1024, $decimals) . ' KB';
+        } elseif ($size > 1) {
+            return self::number($size, $decimals) . ' bytes';
+        } elseif ($size == 1) {
+            return self::number(1, $decimals) . ' byte';
+        }
+
+        return self::number(0, $decimals) . ' bytes';
     }
 
     public static function config(string $key, $default = null)
@@ -124,7 +140,30 @@ class Tools
             return rmdir($folder);
         }
 
-        return unlink($folder);
+        return !file_exists($folder) || unlink($folder);
+    }
+
+    public static function folderSize(string $folder, array $exclude = ['.DS_Store', '.well-known']): int
+    {
+        $size = 0;
+        $scan = scandir($folder, SCANDIR_SORT_ASCENDING);
+        if (false === is_array($scan)) {
+            return $size;
+        }
+
+        $exclude[] = '.';
+        $exclude[] = '..';
+        $files = array_diff($scan, $exclude);
+        foreach ($files as $file) {
+            $newFile = $folder . DIRECTORY_SEPARATOR . $file;
+            if (is_dir($newFile)) {
+                $size += static::folderSize($newFile, $exclude);
+            } else {
+                $size += filesize($newFile);
+            }
+        }
+
+        return $size;
     }
 
     public static function folderScan(string $folder, bool $recursive = false, array $exclude = ['.DS_Store', '.well-known']): array
@@ -160,7 +199,7 @@ class Tools
         return empty($date) ? date(self::HOUR_STYLE) : date(self::HOUR_STYLE, strtotime($date));
     }
 
-    public static function lang(string $lang = ''): Translator
+    public static function lang(?string $lang = ''): Translator
     {
         return new Translator($lang);
     }
@@ -171,14 +210,14 @@ class Tools
         return new MiniLog($channel, $translator);
     }
 
-    public static function money(float $number, string $coddivisa = ''): string
+    public static function money(?float $number, string $coddivisa = ''): string
     {
         if (empty($coddivisa)) {
-            $coddivisa = self::settings('default', 'coddivisa');
+            $coddivisa = self::settings('default', 'coddivisa', '');
         }
 
         $symbol = Divisas::get($coddivisa)->simbolo;
-        $currencyPosition = self::settings('default', 'currency_position');
+        $currencyPosition = self::settings('default', 'currency_position', 'right');
         return $currencyPosition === 'right' ?
             self::number($number) . ' ' . $symbol :
             $symbol . ' ' . self::number($number);
@@ -191,17 +230,17 @@ class Tools
             str_replace(self::HTML_CHARS, self::HTML_REPLACEMENTS, trim($text));
     }
 
-    public static function number(float $number, ?int $decimals = null): string
+    public static function number(?float $number, ?int $decimals = null): string
     {
         if ($decimals === null) {
-            $decimals = self::settings('default', 'decimals');
+            $decimals = self::settings('default', 'decimals', 2);
         }
 
         // cargamos la configuración
-        $decimalSeparator = self::settings('default', 'decimal_separator');
-        $thousandsSeparator = self::settings('default', 'thousands_separator');
+        $decimalSeparator = self::settings('default', 'decimal_separator', '.');
+        $thousandsSeparator = self::settings('default', 'thousands_separator', ' ');
 
-        return number_format($number, $decimals, $decimalSeparator, $thousandsSeparator);
+        return number_format($number ?? 0, $decimals, $decimalSeparator, $thousandsSeparator);
     }
 
     public static function password(int $length = 10): string
@@ -218,11 +257,8 @@ class Tools
     public static function settings(string $group, string $key, $default = null)
     {
         // cargamos las opciones si no están cargadas
-        if (empty(self::$settings)) {
-            $settingsModel = new Settings();
-            foreach ($settingsModel->all([], [], 0, 0) as $item) {
-                self::$settings[$item->name] = $item->properties;
-            }
+        if (null === self::$settings) {
+            self::settingsLoad();
         }
 
         // si no tenemos la clave, añadimos el valor predeterminado
@@ -233,20 +269,19 @@ class Tools
         return self::$settings[$group][$key];
     }
 
+    public static function settingsClear(): void
+    {
+        Cache::delete('tools-settings');
+        self::$settings = null;
+    }
+
     public static function settingsSave(): bool
     {
-        if (empty(self::$settings)) {
-            return true;
-        }
-
-        $settingsModel = new Settings();
-        foreach ($settingsModel->all([], [], 0, 0) as $item) {
-            if (!isset(self::$settings[$item->name])) {
-                continue;
-            }
-
-            $item->properties = self::$settings[$item->name];
-            if (false === $item->save()) {
+        foreach (self::$settings as $key => $properties) {
+            $model = new Settings();
+            $model->name = $key;
+            $model->properties = $properties;
+            if (false === $model->save()) {
                 return false;
             }
         }
@@ -257,11 +292,8 @@ class Tools
     public static function settingsSet(string $group, string $key, $value): void
     {
         // cargamos las opciones si no están cargadas
-        if (empty(self::$settings)) {
-            $settingsModel = new Settings();
-            foreach ($settingsModel->all([], [], 0, 0) as $item) {
-                self::$settings[$item->name] = $item->properties;
-            }
+        if (null === self::$settings) {
+            self::settingsLoad();
         }
 
         // asignamos el valor
@@ -291,8 +323,12 @@ class Tools
         return $randomString;
     }
 
-    public static function textBreak(string $text, int $length = 50, string $break = '...'): string
+    public static function textBreak(?string $text, int $length = 50, string $break = '...'): string
     {
+        if ($text === null) {
+            return '';
+        }
+
         if (strlen($text) <= $length) {
             return trim($text);
         }
@@ -321,5 +357,24 @@ class Tools
     public static function timeToDateTime(int $time): string
     {
         return date(self::DATETIME_STYLE, $time);
+    }
+
+    private static function settingsLoad(): void
+    {
+        if ('' === Tools::config('db_name', '')) {
+            self::$settings = [];
+            return;
+        }
+
+        self::$settings = Cache::remember('tools-settings', function () {
+            $settings = [];
+
+            $model = new Settings();
+            foreach ($model->all([], [], 0, 0) as $item) {
+                $settings[$item->name] = $item->properties;
+            }
+
+            return $settings;
+        });
     }
 }

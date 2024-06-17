@@ -23,6 +23,7 @@ use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use FacturaScripts\Core\DataSrc\Divisas;
 use FacturaScripts\Core\DataSrc\FormasPago;
 use FacturaScripts\Core\Lib\FacturaProveedorRenumber;
+use FacturaScripts\Core\Tools;
 use FacturaScripts\Dinamic\Lib\ExtendedController\ListBusinessDocument;
 
 /**
@@ -70,17 +71,18 @@ class ListFacturaProveedor extends ListBusinessDocument
         $this->addSearchFields($viewName, ['codigorect']);
 
         // filtros
-        $i18n = $this->toolBox()->i18n();
+        $i18n = Tools::lang();
         $this->addFilterSelectWhere($viewName, 'status', [
             ['label' => $i18n->trans('paid-or-unpaid'), 'where' => []],
             ['label' => $i18n->trans('paid'), 'where' => [new DataBaseWhere('pagada', true)]],
             ['label' => $i18n->trans('unpaid'), 'where' => [new DataBaseWhere('pagada', false)]],
             ['label' => $i18n->trans('expired-receipt'), 'where' => [new DataBaseWhere('vencida', true)]],
         ]);
-        $this->addFilterCheckbox('ListFacturaProveedor', 'idasiento', 'invoice-without-acc-entry', 'idasiento', 'IS', null);
+        $this->addFilterCheckbox($viewName, 'idasiento', 'invoice-without-acc-entry', 'idasiento', 'IS', null);
 
         // botones
-        $this->addButtonLockInvoice('ListFacturaProveedor');
+        $this->addButtonLockInvoice($viewName);
+        $this->addButtonGenerateAccountingInvoices($viewName);
 
         if ($this->user->admin) {
             $this->addButton($viewName, [
@@ -95,6 +97,7 @@ class ListFacturaProveedor extends ListBusinessDocument
     protected function createViewReceipts(string $viewName = 'ListReciboProveedor')
     {
         $this->addView($viewName, 'ReciboProveedor', 'receipts', 'fas fa-dollar-sign');
+        $this->addOrderBy($viewName, ['codproveedor'], 'supplier-code');
         $this->addOrderBy($viewName, ['fecha', 'idrecibo'], 'date');
         $this->addOrderBy($viewName, ['fechapago'], 'payment-date');
         $this->addOrderBy($viewName, ['vencimiento'], 'expiration', 2);
@@ -117,7 +120,7 @@ class ListFacturaProveedor extends ListBusinessDocument
             $this->addFilterSelect($viewName, 'codpago', 'payment-method', 'codpago', $payMethods);
         }
 
-        $i18n = $this->toolBox()->i18n();
+        $i18n = Tools::lang();
         $this->addFilterSelectWhere($viewName, 'status', [
             ['label' => $i18n->trans('paid-or-unpaid'), 'where' => []],
             ['label' => $i18n->trans('paid'), 'where' => [new DataBaseWhere('pagado', true)]],
@@ -146,7 +149,7 @@ class ListFacturaProveedor extends ListBusinessDocument
         // añadimos un filtro select where para forzar las que tienen idfacturarect
         $this->addFilterSelectWhere($viewName, 'idfacturarect', [
             [
-                'label' => self::toolBox()::i18n()->trans('rectified-invoices'),
+                'label' => Tools::lang()->trans('rectified-invoices'),
                 'where' => [new DataBaseWhere('idfacturarect', null, 'IS NOT')]
             ]
         ]);
@@ -178,7 +181,7 @@ class ListFacturaProveedor extends ListBusinessDocument
     protected function renumberInvoicesAction(): void
     {
         if (false === $this->user->admin) {
-            self::toolBox()->i18nLog()->warning('not-allowed-modify');
+            Tools::log()->warning('not-allowed-modify');
             return;
         } elseif (false === $this->validateFormToken()) {
             return;
@@ -186,10 +189,11 @@ class ListFacturaProveedor extends ListBusinessDocument
 
         $codejercicio = $this->request->request->get('exercise');
         if (FacturaProveedorRenumber::run($codejercicio)) {
-            self::toolBox()->i18nLog()->notice('record-updated-correctly');
+            Tools::log('facturasprov')->notice('renumber-invoices-success', ['%exercise%' => $codejercicio]);
+            Tools::log()->notice('renumber-invoices-success', ['%exercise%' => $codejercicio]);
             return;
         }
 
-        self::toolBox()->i18nLog()->warning('record-save-error');
+        Tools::log()->warning('record-save-error');
     }
 }

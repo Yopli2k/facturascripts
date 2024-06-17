@@ -19,9 +19,8 @@
 
 namespace FacturaScripts\Core;
 
-use FacturaScripts\Core\App\AppSettings;
 use FacturaScripts\Core\Base\MiniLog;
-use FacturaScripts\Core\Base\Translator;
+use FacturaScripts\Core\Base\MyFilesToken;
 use FacturaScripts\Core\DataSrc\Divisas;
 use FacturaScripts\Core\Lib\AssetManager;
 use FacturaScripts\Core\Lib\MultiRequestProtection;
@@ -32,6 +31,7 @@ use Twig\Environment;
 use Twig\Error\LoaderError;
 use Twig\Error\RuntimeError;
 use Twig\Error\SyntaxError;
+use Twig\Extension\DebugExtension;
 use Twig\Loader\FilesystemLoader;
 use Twig\TwigFunction;
 
@@ -82,8 +82,8 @@ final class Html
     public static function render(string $template, array $params = []): string
     {
         $templateVars = [
-            'appSettings' => new AppSettings(),
             'assetManager' => new AssetManager(),
+            'debugBarRender' => Tools::config('debug') ? new DebugBar() : false,
             'i18n' => new Translator(),
             'log' => new MiniLog()
         ];
@@ -109,6 +109,13 @@ final class Html
         });
     }
 
+    private static function cacheFunction(): TwigFunction
+    {
+        return new TwigFunction('cache', function (string $key) {
+            return Cache::get($key);
+        });
+    }
+
     private static function configFunction(): TwigFunction
     {
         return new TwigFunction('config', function (string $key, $default = null) {
@@ -120,6 +127,13 @@ final class Html
             }
 
             return $default;
+        });
+    }
+
+    private static function executionTimeFunction(): TwigFunction
+    {
+        return new TwigFunction('executionTime', function () {
+            return Kernel::getExecutionTime();
         });
     }
 
@@ -249,17 +263,17 @@ final class Html
 
     private static function moneyFunction(): TwigFunction
     {
-        return new TwigFunction('money', function (float $number, string $coddivisa = '') {
+        return new TwigFunction('money', function (?float $number, string $coddivisa = '') {
             if (empty($coddivisa)) {
-                $coddivisa = AppSettings::get('default', 'coddivisa');
+                $coddivisa = Tools::settings('default', 'coddivisa');
             }
 
             // cargamos la configuración de divisas
             $symbol = Divisas::get($coddivisa)->simbolo;
-            $decimals = AppSettings::get('default', 'decimals');
-            $decimalSeparator = AppSettings::get('default', 'decimal_separator');
-            $thousandsSeparator = AppSettings::get('default', 'thousands_separator');
-            $currencyPosition = AppSettings::get('default', 'currency_position');
+            $decimals = Tools::settings('default', 'decimals');
+            $decimalSeparator = Tools::settings('default', 'decimal_separator');
+            $thousandsSeparator = Tools::settings('default', 'thousands_separator');
+            $currencyPosition = Tools::settings('default', 'currency_position');
 
             return $currencyPosition === 'right' ?
                 number_format($number, $decimals, $decimalSeparator, $thousandsSeparator) . ' ' . $symbol :
@@ -267,16 +281,23 @@ final class Html
         });
     }
 
+    private static function myFilesUrlFunction(): TwigFunction
+    {
+        return new TwigFunction('myFilesUrl', function (string $path, bool $permanent = false, string $expiration = '') {
+            return $path . '?myft=' . MyFilesToken::get($path, $permanent, $expiration);
+        });
+    }
+
     private static function numberFunction(): TwigFunction
     {
-        return new TwigFunction('number', function (float $number, ?int $decimals = null) {
+        return new TwigFunction('number', function (?float $number, ?int $decimals = null) {
             if ($decimals === null) {
-                $decimals = AppSettings::get('default', 'decimals');
+                $decimals = Tools::settings('default', 'decimals');
             }
 
             // cargamos la configuración
-            $decimalSeparator = AppSettings::get('default', 'decimal_separator');
-            $thousandsSeparator = AppSettings::get('default', 'thousands_separator');
+            $decimalSeparator = Tools::settings('default', 'decimal_separator');
+            $thousandsSeparator = Tools::settings('default', 'thousands_separator');
 
             return number_format($number, $decimals, $decimalSeparator, $thousandsSeparator);
         });
@@ -285,7 +306,7 @@ final class Html
     private static function settingsFunction(): TwigFunction
     {
         return new TwigFunction('settings', function (string $group, string $property, $default = null) {
-            return AppSettings::get($group, $property, $default);
+            return Tools::settings($group, $property, $default);
         });
     }
 
@@ -296,6 +317,13 @@ final class Html
             return empty($langCode) ?
                 $trans->trans($txt, $parameters) :
                 $trans->customTrans($langCode, $txt, $parameters);
+        });
+    }
+
+    private static function bytesFunction(): TwigFunction
+    {
+        return new TwigFunction('bytes', function ($size, int $decimals = 2) {
+            return Tools::bytes($size, $decimals);
         });
     }
 
@@ -329,17 +357,25 @@ final class Html
         }
         self::$twig = new Environment(self::$loader, $options);
 
+        if (FS_DEBUG) {
+            self::$twig->addExtension(new DebugExtension());
+        }
+
         // cargamos las funciones de twig
         self::$twig->addFunction(self::assetFunction());
         self::$twig->addFunction(self::attachedFileFunction());
+        self::$twig->addFunction(self::cacheFunction());
         self::$twig->addFunction(self::configFunction());
+        self::$twig->addFunction(self::executionTimeFunction());
         self::$twig->addFunction(self::fixHtmlFunction());
         self::$twig->addFunction(self::formTokenFunction());
         self::$twig->addFunction(self::getIncludeViews());
         self::$twig->addFunction(self::moneyFunction());
+        self::$twig->addFunction(self::myFilesUrlFunction());
         self::$twig->addFunction(self::numberFunction());
         self::$twig->addFunction(self::settingsFunction());
         self::$twig->addFunction(self::transFunction());
+        self::$twig->addFunction(self::bytesFunction());
         foreach (self::$functions as $function) {
             self::$twig->addFunction($function);
         }

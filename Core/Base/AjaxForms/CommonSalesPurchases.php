@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2021-2023 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2021-2024 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -19,7 +19,6 @@
 
 namespace FacturaScripts\Core\Base\AjaxForms;
 
-use FacturaScripts\Core\Base\ToolBox;
 use FacturaScripts\Core\Base\Translator;
 use FacturaScripts\Core\DataSrc\Almacenes;
 use FacturaScripts\Core\DataSrc\Divisas;
@@ -29,18 +28,45 @@ use FacturaScripts\Core\DataSrc\Series;
 use FacturaScripts\Core\Lib\InvoiceOperation;
 use FacturaScripts\Core\Model\Base\BusinessDocument;
 use FacturaScripts\Core\Model\Base\TransformerDocument;
+use FacturaScripts\Core\Session;
+use FacturaScripts\Core\Tools;
 use FacturaScripts\Dinamic\Model\EstadoDocumento;
 
+/**
+ * Description of CommonSalesPurchases
+ *
+ * @author Carlos Garcia Gomez      <carlos@facturascripts.com>
+ * @author Daniel Fernández Giménez <hola@danielfg.es>
+ */
 trait CommonSalesPurchases
 {
+    /** @var string */
     protected static $columnView;
+
+    public static function checkLevel(int $level): bool
+    {
+        $user = Session::user();
+
+        // si el usuario no existe, devolvemos false
+        if (false === $user->exists()) {
+            return false;
+        }
+
+        // si el usuario es administrador, devolvemos true
+        if ($user->admin) {
+            return true;
+        }
+
+        // si el nivel es menor que el del usuario, devolvemos false
+        return $level <= $user->level;
+    }
 
     protected static function cifnif(Translator $i18n, BusinessDocument $model): string
     {
-        $attributes = $model->editable ? 'name="cifnif" maxlength="30" autocomplete="off"' : 'disabled=""';
+        $attributes = $model->editable ? 'name="cifnif" maxlength="30" autocomplete="off"' : 'disabled';
         return '<div class="col-sm-6">'
             . '<div class="form-group">' . $i18n->trans('cifnif')
-            . '<input type="text" ' . $attributes . ' value="' . $model->cifnif . '" class="form-control"/>'
+            . '<input type="text" ' . $attributes . ' value="' . Tools::noHtml($model->cifnif) . '" class="form-control"/>'
             . '</div>'
             . '</div>';
     }
@@ -93,13 +119,12 @@ trait CommonSalesPurchases
             $options[] = '</optgroup>';
         }
         $attributes = $model->editable ?
-            'name="codalmacen" onchange="return ' . $jsFunc . '(\'recalculate\', \'0\');" required=""' :
-            'disabled=""';
+            'name="codalmacen" onchange="return ' . $jsFunc . '(\'recalculate\', \'0\');" required' :
+            'disabled';
         return empty($model->subjectColumnValue()) || count($options) <= 1 ? '' : '<div class="col-sm-2 col-lg">'
             . '<div class="form-group">'
-            . '<a href="' . Almacenes::get($model->codalmacen)->url() . '">' . $i18n->trans('warehouse') . '</a>'
-            . '<select ' . $attributes . ' class="form-control">'
-            . implode('', $options) . '</select>'
+            . '<a href="' . Almacenes::get($model->codalmacen)->url() . '">' . $i18n->trans('company-warehouse') . '</a>'
+            . '<select ' . $attributes . ' class="form-control">' . implode('', $options) . '</select>'
             . '</div>'
             . '</div>';
     }
@@ -113,7 +138,7 @@ trait CommonSalesPurchases
                 '<option value="' . $row->coddivisa . '">' . $row->descripcion . '</option>';
         }
 
-        $attributes = $model->editable ? 'name="coddivisa" required=""' : 'disabled=""';
+        $attributes = $model->editable ? 'name="coddivisa" required' : 'disabled';
         return empty($model->subjectColumnValue()) ? '' : '<div class="col-sm-6">'
             . '<div class="form-group">'
             . '<a href="' . Divisas::get($model->coddivisa)->url() . '">' . $i18n->trans('currency') . '</a>'
@@ -135,9 +160,9 @@ trait CommonSalesPurchases
                 '<option value="' . $row->codpago . '">' . $row->descripcion . '</option>';
         }
 
-        $attributes = $model->editable ? 'name="codpago" required=""' : 'disabled=""';
+        $attributes = $model->editable ? 'name="codpago" required' : 'disabled';
         return empty($model->subjectColumnValue()) ? '' : '<div class="col-sm-3 col-md-2 col-lg">'
-            . '<div class="form-group">'
+            . '<div id="payment-methods" class="form-group">'
             . '<a href="' . FormasPago::get($model->codpago)->url() . '">' . $i18n->trans('payment-method') . '</a>'
             . '<select ' . $attributes . ' class="form-control">' . implode('', $options) . '</select>'
             . '</div>'
@@ -146,16 +171,32 @@ trait CommonSalesPurchases
 
     protected static function codserie(Translator $i18n, BusinessDocument $model, string $jsFunc): string
     {
+        // es una factura rectificativa?
+        $rectificativa = property_exists($model, 'idfacturarect') && $model->idfacturarect;
+
         $options = [];
         foreach (Series::all() as $row) {
-            $options[] = ($row->codserie === $model->codserie) ?
-                '<option value="' . $row->codserie . '" selected>' . $row->descripcion . '</option>' :
-                '<option value="' . $row->codserie . '">' . $row->descripcion . '</option>';
+            // es la serie seleccionada
+            if ($row->codserie === $model->codserie) {
+                $options[] = '<option value="' . $row->codserie . '" selected>' . $row->descripcion . '</option>';
+                continue;
+            }
+
+            // si la serie es rectificativa y la factura también, la añadimos
+            if ($rectificativa && $row->tipo === 'R') {
+                $options[] = '<option value="' . $row->codserie . '">' . $row->descripcion . '</option>';
+                continue;
+            }
+
+            // si la serie no es rectificativa y la factura tampoco, la añadimos
+            if (false === $rectificativa && $row->tipo !== 'R') {
+                $options[] = '<option value="' . $row->codserie . '">' . $row->descripcion . '</option>';
+            }
         }
 
         $attributes = $model->editable ?
-            'name="codserie" onchange="return ' . $jsFunc . '(\'recalculate\', \'0\');" required=""' :
-            'disabled=""';
+            'name="codserie" onchange="return ' . $jsFunc . '(\'recalculate\', \'0\');" required' :
+            'disabled';
         return empty($model->subjectColumnValue()) ? '' : '<div class="col-sm-3 col-md-2 col-lg">'
             . '<div class="form-group">'
             . '<a href="' . Series::get($model->codserie)->url() . '">' . $i18n->trans('serie') . '</a>'
@@ -164,17 +205,21 @@ trait CommonSalesPurchases
             . '</div>';
     }
 
-    protected static function column(Translator $i18n, BusinessDocument $model, string $colName, string $label, bool $autoHide = false): string
+    protected static function column(Translator $i18n, BusinessDocument $model, string $colName, string $label, bool $autoHide = false, int $level = 0): string
     {
+        if (false === self::checkLevel($level)) {
+            return '';
+        }
+
         return empty($model->{$colName}) && $autoHide ? '' : '<div class="col-sm"><div class="form-group">' . $i18n->trans($label)
             . '<input type="text" value="' . number_format($model->{$colName}, FS_NF0, FS_NF1, '')
-            . '" class="form-control" disabled=""/></div></div>';
+            . '" class="form-control" disabled/></div></div>';
     }
 
     protected static function deleteBtn(Translator $i18n, BusinessDocument $model, string $jsName): string
     {
         return $model->primaryColumnValue() && $model->editable ?
-            '<button type="button" class="btn btn-danger mb-3" data-toggle="modal" data-target="#deleteDocModal">'
+            '<button type="button" class="btn btn-spin-action btn-danger mb-3" data-toggle="modal" data-target="#deleteDocModal">'
             . '<i class="fas fa-trash-alt fa-fw"></i> ' . $i18n->trans('delete')
             . '</button>'
             . '<div class="modal fade" id="deleteDocModal" tabindex="-1" aria-hidden="true">'
@@ -192,8 +237,9 @@ trait CommonSalesPurchases
             . '<p class="mb-0">' . $i18n->trans('are-you-sure') . '</p>'
             . '</div>'
             . '<div class="modal-footer">'
-            . '<button type="button" class="btn btn-secondary" data-dismiss="modal">' . $i18n->trans('cancel') . '</button>'
-            . '<button type="button" class="btn btn-danger" onclick="return ' . $jsName . '(\'delete-doc\', \'0\');">' . $i18n->trans('delete') . '</button>'
+            . '<button type="button" class="btn btn-spin-action btn-secondary" data-dismiss="modal">' . $i18n->trans('cancel') . '</button>'
+            . '<button type="button" class="btn btn-spin-action btn-danger" onclick="return ' . $jsName . '(\'delete-doc\', \'0\');">'
+            . $i18n->trans('delete') . '</button>'
             . '</div>'
             . '</div>'
             . '</div>'
@@ -207,12 +253,12 @@ trait CommonSalesPurchases
         }
 
         $attributes = $model->editable ?
-            'max="100" min="0" name="dtopor1" required="" step="any" onkeyup="return ' . $jsName . '(\'recalculate\', \'0\', event);"' :
-            'disabled=""';
+            'max="100" min="0" name="dtopor1" required step="any" onkeyup="return ' . $jsName . '(\'recalculate\', \'0\', event);"' :
+            'disabled';
         return '<div class="col-sm"><div class="form-group">' . $i18n->trans('global-dto')
             . '<div class="input-group">'
             . '<div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-percentage"></i></span></div>'
-            . '<input type="number" ' . $attributes . ' value="' . $model->dtopor1 . '" class="form-control"/>'
+            . '<input type="number" ' . $attributes . ' value="' . floatval($model->dtopor1) . '" class="form-control"/>'
             . '</div></div></div>';
     }
 
@@ -223,14 +269,14 @@ trait CommonSalesPurchases
         }
 
         $attributes = $model->editable ?
-            'max="100" min="0" name="dtopor2" required="" step="any" onkeyup="return ' . $jsName . '(\'recalculate\', \'0\', event);"' :
-            'disabled=""';
+            'max="100" min="0" name="dtopor2" required step="any" onkeyup="return ' . $jsName . '(\'recalculate\', \'0\', event);"' :
+            'disabled';
         return '<div class="col-sm-2 col-md"><div class="form-group">' . $i18n->trans('global-dto-2')
             . '<div class="input-group">'
             . '<div class="input-group-prepend">'
             . '<span class="input-group-text"><i class="fas fa-percentage"></i></span>'
             . '</div>'
-            . '<input type="number" ' . $attributes . ' value="' . $model->dtopor2 . '" class="form-control"/>'
+            . '<input type="number" ' . $attributes . ' value="' . floatval($model->dtopor2) . '" class="form-control"/>'
             . '</div></div></div>';
     }
 
@@ -255,9 +301,9 @@ trait CommonSalesPurchases
 
     protected static function fecha(Translator $i18n, BusinessDocument $model, bool $enabled = true): string
     {
-        $attributes = $model->editable && $enabled ? 'name="fecha" required=""' : 'disabled=""';
+        $attributes = $model->editable && $enabled ? 'name="fecha" required' : 'disabled';
         return empty($model->subjectColumnValue()) ? '' : '<div class="col-sm">'
-            . '<div class="form-group">' . $i18n->trans('date')
+            . '<div id="document-date" class="form-group">' . $i18n->trans('date')
             . '<input type="date" ' . $attributes . ' value="' . date('Y-m-d', strtotime($model->fecha)) . '" class="form-control"/>'
             . '</div>'
             . '</div>';
@@ -269,7 +315,7 @@ trait CommonSalesPurchases
             return '';
         }
 
-        $attributes = $model->editable ? 'name="fechadevengo" required=""' : 'disabled=""';
+        $attributes = $model->editable ? 'name="fechadevengo" required' : 'disabled';
         $value = empty($model->fechadevengo) ? '' : date('Y-m-d', strtotime($model->fechadevengo));
         return empty($model->subjectColumnValue()) ? '' : '<div class="col-sm">'
             . '<div class="form-group">' . $i18n->trans('accrual-date')
@@ -284,7 +330,7 @@ trait CommonSalesPurchases
             return '';
         }
 
-        $attributes = empty($model->femail) && $model->editable ? 'name="femail" ' : 'disabled=""';
+        $attributes = empty($model->femail) && $model->editable ? 'name="femail" ' : 'disabled';
         $value = empty($model->femail) ? '' : date('Y-m-d', strtotime($model->femail));
         return '<div class="col-sm-6">'
             . '<div class="form-group">' . $i18n->trans('email-sent')
@@ -295,7 +341,7 @@ trait CommonSalesPurchases
 
     protected static function hora(Translator $i18n, BusinessDocument $model): string
     {
-        $attributes = $model->editable ? 'name="hora" required=""' : 'disabled=""';
+        $attributes = $model->editable ? 'name="hora" required' : 'disabled';
         return empty($model->subjectColumnValue()) ? '' : '<div class="col-sm-6">'
             . '<div class="form-group">' . $i18n->trans('hour')
             . '<input type="time" ' . $attributes . ' value="' . date('H:i:s', strtotime($model->hora)) . '" class="form-control"/>'
@@ -387,7 +433,7 @@ trait CommonSalesPurchases
             $list .= '<tr>'
                 . '<td><a href="' . $doc->url() . '">' . $i18n->trans($doc->modelClassName()) . ' ' . $doc->codigo . '</a></td>'
                 . '<td>' . $doc->observaciones . '</td>'
-                . '<td class="text-right text-nowrap">' . ToolBox::coins()::format($doc->total) . '</td>'
+                . '<td class="text-right text-nowrap">' . Tools::money($doc->total) . '</td>'
                 . '<td class="text-right text-nowrap">' . $doc->fecha . ' ' . $doc->hora . '</td>'
                 . '</tr>';
             $sum += $doc->total;
@@ -396,7 +442,7 @@ trait CommonSalesPurchases
         // añadimos el total
         $list .= '<tr class="table-warning">'
             . '<td class="text-right text-nowrap" colspan="3">'
-            . $i18n->trans('total') . ' <b>' . ToolBox::coins()::format($sum) . '</b></td>'
+            . $i18n->trans('total') . ' <b>' . Tools::money($sum) . '</b></td>'
             . '<td></td>'
             . '</tr>';
 
@@ -431,7 +477,7 @@ trait CommonSalesPurchases
     {
         return empty($model->dtopor1) && empty($model->dtopor2) ? '' : '<div class="col-sm-2"><div class="form-group">' . $i18n->trans('subtotal')
             . '<input type="text" value="' . number_format($model->netosindto, FS_NF0, FS_NF1, '')
-            . '" class="form-control" disabled=""/></div></div>';
+            . '" class="form-control" disabled/></div></div>';
     }
 
     protected static function newLineBtn(Translator $i18n, BusinessDocument $model, string $jsName): string
@@ -443,7 +489,7 @@ trait CommonSalesPurchases
 
     protected static function observaciones(Translator $i18n, BusinessDocument $model): string
     {
-        $attributes = $model->editable ? 'name="observaciones"' : 'disabled=""';
+        $attributes = $model->editable ? 'name="observaciones"' : 'disabled';
         $rows = 1;
         foreach (explode("\n", $model->observaciones ?? '') as $desLine) {
             $rows += mb_strlen($desLine) < 140 ? 1 : ceil(mb_strlen($desLine) / 140);
@@ -451,7 +497,7 @@ trait CommonSalesPurchases
 
         return '<div class="col-sm-12"><div class="form-group">' . $i18n->trans('observations')
             . '<textarea ' . $attributes . ' class="form-control" placeholder="' . $i18n->trans('observations')
-            . '" rows="' . $rows . '">' . $model->observaciones . '</textarea>'
+            . '" rows="' . $rows . '">' . Tools::noHtml($model->observaciones) . '</textarea>'
             . '</div></div>';
     }
 
@@ -491,9 +537,9 @@ trait CommonSalesPurchases
 
         return '<div class="col-sm-auto">'
             . '<div class="form-group">'
-            . '<button class="btn btn-outline-danger dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false">'
+            . '<button class="btn btn-spin-action btn-outline-danger dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false">'
             . '<i class="fas fa-times fa-fw"></i> ' . $i18n->trans('unpaid') . '</button>'
-            . '<div class="dropdown-menu"><a class="dropdown-item text-success" href="#" onclick="return ' . $jsName . '(\'save-paid\', \'1\');">'
+            . '<div class="dropdown-menu"><a class="dropdown-item text-success" href="#" onclick="showModalPaymentConditions(' . $jsName . ')">'
             . '<i class="fas fa-check-square fa-fw"></i> ' . $i18n->trans('paid') . '</a></div>'
             . '</div>'
             . '</div>';
@@ -582,10 +628,10 @@ trait CommonSalesPurchases
 
     protected static function tasaconv(Translator $i18n, BusinessDocument $model): string
     {
-        $attributes = $model->editable ? 'name="tasaconv" step="any" autocomplete="off"' : 'disabled=""';
+        $attributes = $model->editable ? 'name="tasaconv" step="any" autocomplete="off"' : 'disabled';
         return '<div class="col-sm-6">'
             . '<div class="form-group">' . $i18n->trans('conversion-rate')
-            . '<input type="number" ' . $attributes . ' value="' . $model->tasaconv . '" class="form-control"/>'
+            . '<input type="number" ' . $attributes . ' value="' . floatval($model->tasaconv) . '" class="form-control"/>'
             . '</div>'
             . '</div>';
     }
@@ -595,19 +641,26 @@ trait CommonSalesPurchases
         return empty($model->total) ? '' : '<div class="col-sm"><div class="form-group">' . $i18n->trans('total')
             . '<div class="input-group">'
             . '<input type="text" value="' . number_format($model->total, FS_NF0, FS_NF1, '')
-            . '" class="form-control" disabled=""/>'
+            . '" class="form-control" disabled/>'
             . '<div class="input-group-append"><button class="btn btn-primary btn-spin-action" onclick="return ' . $jsName
             . '(\'save-doc\', \'0\');" title="' . $i18n->trans('save') . '" type="button">'
             . '<i class="fas fa-save fa-fw"></i></button></div>'
             . '</div></div></div>';
     }
 
+    protected static function undoBtn(Translator $i18n, BusinessDocument $model): string
+    {
+        return $model->subjectColumnValue() && $model->editable ? '<a href="' . $model->url() . '" class="btn btn-secondary mr-2">'
+            . '<i class="fas fa-undo fa-fw"></i> ' . $i18n->trans('undo')
+            . '</a>' : '';
+    }
+
     protected static function user(Translator $i18n, BusinessDocument $model): string
     {
-        $attributes = 'disabled=""';
+        $attributes = 'disabled';
         return empty($model->subjectColumnValue()) ? '' : '<div class="col-sm-6">'
             . '<div class="form-group">' . $i18n->trans('user')
-            . '<input type="text" ' . $attributes . ' value="' . $model->nick . '" class="form-control"/>'
+            . '<input type="text" ' . $attributes . ' value="' . Tools::noHtml($model->nick) . '" class="form-control"/>'
             . '</div>'
             . '</div>';
     }

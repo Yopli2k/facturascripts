@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2022 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2023 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -19,10 +19,10 @@
 
 namespace FacturaScripts\Core\Lib\PDF;
 
-use FacturaScripts\Core\App\AppSettings;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use FacturaScripts\Core\Base\Utils;
 use FacturaScripts\Core\Model\Base\BusinessDocument;
+use FacturaScripts\Core\Tools;
 use FacturaScripts\Dinamic\Model\AgenciaTransporte;
 use FacturaScripts\Dinamic\Model\AttachedFile;
 use FacturaScripts\Dinamic\Model\Cliente;
@@ -47,12 +47,9 @@ use FacturaScripts\Dinamic\Model\ReciboCliente;
  */
 abstract class PDFDocument extends PDFCore
 {
-
     const INVOICE_TOTALS_Y = 200;
 
-    /**
-     * @var FormatoDocumento
-     */
+    /** @var FormatoDocumento */
     protected $format;
 
     /**
@@ -186,7 +183,7 @@ abstract class PDFDocument extends PDFCore
 
         $subtotals = [];
         foreach ($model->getLines() as $line) {
-            if (empty($line->pvptotal) || $line->suplido) {
+            if (empty($line->codimpuesto) || empty($line->pvptotal) || $line->suplido) {
                 continue;
             }
 
@@ -403,7 +400,7 @@ abstract class PDFDocument extends PDFCore
         if ($model->modelClassName() === 'FacturaCliente') {
             $this->insertInvoiceReceipts($model);
         } elseif (isset($model->codcliente)) {
-            $this->insertInvoicePayMehtod($model);
+            $this->insertInvoicePayMethod($model);
         }
 
         if (!empty($this->format->texto)) {
@@ -437,7 +434,7 @@ abstract class PDFDocument extends PDFCore
         $this->newLine();
 
         $subject = $model->getSubject();
-        $tipoidfiscal = empty($subject->tipoidfiscal) ? $this->i18n->trans('cifnif') : $subject->tipoidfiscal;
+        $tipoIdFiscal = empty($subject->tipoidfiscal) ? $this->i18n->trans('cifnif') : $subject->tipoidfiscal;
         $serie = $model->getSerie();
 
         $tableData = [
@@ -445,14 +442,20 @@ abstract class PDFDocument extends PDFCore
             ['key' => $this->i18n->trans('date'), 'value' => $model->fecha],
             ['key' => $this->i18n->trans('address'), 'value' => $this->getDocAddress($subject, $model)],
             ['key' => $this->i18n->trans('code'), 'value' => $model->codigo],
-            ['key' => $tipoidfiscal, 'value' => $model->cifnif],
+            ['key' => $tipoIdFiscal, 'value' => $model->cifnif],
             ['key' => $this->i18n->trans('number'), 'value' => $model->numero],
             ['key' => $this->i18n->trans('serie'), 'value' => $serie->descripcion]
         ];
 
         // rectified invoice?
         if (isset($model->codigorect) && !empty($model->codigorect)) {
-            $tableData[3] = ['key' => $this->i18n->trans('original'), 'value' => $model->codigorect];
+            $original = new $model();
+            if ($original->loadFromCode('', [new DataBaseWhere('codigo', $model->codigorect)])) {
+                $tableData[3] = [
+                    'key' => $this->i18n->trans('original'),
+                    'value' => $model->codigorect . ', ' . $original->fecha
+                ];
+            }
         } elseif (property_exists($model, 'numproveedor') && $model->numproveedor) {
             $tableData[3] = ['key' => $this->i18n->trans('numsupplier'), 'value' => $model->numproveedor];
         } elseif (property_exists($model, 'numero2') && $model->numero2) {
@@ -563,7 +566,7 @@ abstract class PDFDocument extends PDFCore
         }
 
         $this->insertedHeader = true;
-        $code = $idempresa ?? AppSettings::get('default', 'idempresa', '');
+        $code = $idempresa ?? Tools::settings('default', 'idempresa', '');
         $company = new Empresa();
         if (false === $company->loadFromCode($code)) {
             return;
@@ -586,14 +589,14 @@ abstract class PDFDocument extends PDFCore
         $lineText = $company->cifnif . ' - ' . Utils::fixHtml($address) . "\n\n" . implode(' · ', $contactData);
         $this->pdf->ezText($lineText, self::FONT_SIZE, ['justification' => 'right']);
 
-        $idlogo = $this->format->idlogo ?? $company->idlogo;
-        $this->insertCompanyLogo($idlogo);
+        $idLogo = $this->format->idlogo ?? $company->idlogo;
+        $this->insertCompanyLogo($idLogo);
     }
 
     /**
      * @param FacturaCliente $invoice
      */
-    protected function insertInvoicePayMehtod($invoice)
+    protected function insertInvoicePayMethod($invoice)
     {
         $headers = [
             'method' => $this->i18n->trans('payment-method'),
@@ -633,10 +636,10 @@ abstract class PDFDocument extends PDFCore
             ];
             $rows = [];
             foreach ($receipts as $receipt) {
-                $paylink = $receipt->url('pay');
+                $payLink = $receipt->url('pay');
                 $rows[] = [
                     'numero' => $receipt->numero,
-                    'bank' => empty($paylink) ? $this->getBankData($receipt) : '<c:alink:' . $paylink . '>'
+                    'bank' => empty($payLink) ? $this->getBankData($receipt) : '<c:alink:' . $payLink . '>'
                         . $this->i18n->trans('pay') . '</c:alink>',
                     'importe' => $this->numberTools->format($receipt->importe),
                     'vencimiento' => $receipt->pagado ? $this->i18n->trans('paid') : $receipt->vencimiento

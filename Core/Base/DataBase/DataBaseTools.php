@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2015-2022 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2015-2023 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -20,7 +20,7 @@
 namespace FacturaScripts\Core\Base\DataBase;
 
 use FacturaScripts\Core\Base\DataBase as db;
-use FacturaScripts\Core\Base\ToolBox;
+use FacturaScripts\Core\Tools;
 use SimpleXMLElement;
 
 /**
@@ -30,7 +30,6 @@ use SimpleXMLElement;
  */
 class DataBaseTools
 {
-
     /**
      * DataBase object.
      *
@@ -84,13 +83,13 @@ class DataBaseTools
     {
         $filename = static::getXmlTableLocation($tableName);
         if (false === file_exists($filename)) {
-            ToolBox::i18nLog()->critical('file-not-found', ['%fileName%' => $filename]);
+            Tools::log()->critical('file-not-found', ['%fileName%' => $filename]);
             return false;
         }
 
         $xml = simplexml_load_string(file_get_contents($filename, true));
         if (false === $xml) {
-            ToolBox::i18nLog()->critical('error-reading-file', ['%fileName%' => $filename]);
+            Tools::log()->critical('error-reading-file', ['%fileName%' => $filename]);
             return false;
         }
 
@@ -135,6 +134,15 @@ class DataBaseTools
         foreach ($xml->column as $col) {
             $columns[$key]['name'] = (string)$col->name;
             $columns[$key]['type'] = (string)$col->type;
+
+            if ($col->type == 'serial') {
+                $columns[$key]['type'] = (string)$col->type;
+                $columns[$key]['null'] = 'NO';
+                $columns[$key]['default'] = null;
+                ++$key;
+                continue;
+            }
+
             $columns[$key]['null'] = $col->null && strtolower($col->null) === 'no' ? 'NO' : 'YES';
             $columns[$key]['default'] = $col->default === '' ? null : (string)$col->default;
             ++$key;
