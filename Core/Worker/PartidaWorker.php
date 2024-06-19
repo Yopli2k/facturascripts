@@ -19,6 +19,7 @@
 
 namespace FacturaScripts\Core\Worker;
 
+use FacturaScripts\Core\Base\DataBase;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use FacturaScripts\Core\Model\WorkEvent;
 use FacturaScripts\Core\Template\WorkerClass;
@@ -47,14 +48,14 @@ class PartidaWorker extends WorkerClass
         $saldo = 0.0;
 
         // leemos las partidas de la subcuenta
+        $database = new DataBase();
         $partidaAsientoModel = new PartidaAsiento();
         $where = [new DataBaseWhere('idsubcuenta', $subcuenta->idsubcuenta)];
         $orderBy = ['fecha' => 'ASC', 'numero' => 'ASC', 'idpartida' => 'ASC'];
         $limit = 1000;
         $offset = 0;
         $partidasAsientos = $partidaAsientoModel->all($where, $orderBy, $offset, $limit);
-
-        while (count($partidasAsientos) > 0) {
+        while (false === empty($partidasAsientos)) {
             foreach ($partidasAsientos as $line) {
                 // sumamos el debe y el haber
                 $debe += $line->debe;
@@ -67,9 +68,8 @@ class PartidaWorker extends WorkerClass
                 }
 
                 // actualizamos la partida
-                $partida = $line->getPartida();
-                $partida->saldo = round($saldo, FS_NF0);
-                $partida->save();
+                $sql = 'UPDATE partidas SET saldo = ' . round($saldo, FS_NF0) . ' WHERE idpartida = ' . $line->idpartida;
+                $database->exec($sql);
             }
 
             // seguimos leyendo las partidas
