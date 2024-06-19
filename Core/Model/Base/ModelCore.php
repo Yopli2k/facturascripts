@@ -296,7 +296,8 @@ abstract class ModelCore
      */
     private function checkTable(): bool
     {
-        if (false === Session::user()->admin) {
+        $user = Session::get('user');
+        if (empty($user) || empty($user->admin)) {
             return true;
         }
 
