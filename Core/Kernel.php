@@ -25,6 +25,9 @@ use FacturaScripts\Core\Base\ToolBox;
 use FacturaScripts\Core\Contract\ErrorControllerInterface;
 use FacturaScripts\Core\Error\DefaultError;
 
+/**
+ * El corazón de FacturaScripts. Se encarga de gestionar las rutas y ejecutar los controladores.
+ */
 final class Kernel
 {
     /** @var array */
@@ -229,7 +232,7 @@ final class Kernel
 
     public static function version(): float
     {
-        return 2024.7;
+        return 2024.8;
     }
 
     private static function getErrorHandler(Exception $exception): ErrorControllerInterface
