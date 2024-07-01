@@ -25,6 +25,7 @@ use FacturaScripts\Core\Base\ToolBox;
 use FacturaScripts\Core\Cache;
 use FacturaScripts\Core\DbQuery;
 use FacturaScripts\Core\Lib\Import\CSVImport;
+use FacturaScripts\Core\Session;
 use FacturaScripts\Core\Tools;
 
 /**
@@ -295,6 +296,11 @@ abstract class ModelCore
      */
     private function checkTable(): bool
     {
+        $user = Session::get('user');
+        if (empty($user) || empty($user->admin)) {
+            return true;
+        }
+
         $xmlCols = [];
         $xmlCons = [];
         if (false === DataBaseTools::getXmlTable(static::tableName(), $xmlCols, $xmlCons)) {
