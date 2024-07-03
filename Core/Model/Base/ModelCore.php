@@ -25,8 +25,6 @@ use FacturaScripts\Core\Base\ToolBox;
 use FacturaScripts\Core\DbQuery;
 use FacturaScripts\Core\DbUpdater;
 use FacturaScripts\Core\Lib\Import\CSVImport;
-use FacturaScripts\Core\Session;
-use FacturaScripts\Core\Tools;
 
 /**
  * The class from which all models inherit, connects to the database,
@@ -281,38 +279,6 @@ abstract class ModelCore
         }
 
         return $data;
-    }
-
-    /**
-     * Checks and updates the structure of the table if necessary.
-     *
-     * @return bool
-     */
-    private function checkTable(): bool
-    {
-        $user = Session::get('user');
-        if (empty($user) || empty($user->admin)) {
-            return true;
-        }
-
-        $xmlCols = [];
-        $xmlCons = [];
-        if (false === DataBaseTools::getXmlTable(static::tableName(), $xmlCols, $xmlCons)) {
-            Tools::log()->critical('error-on-xml-file', ['%fileName%' => static::tableName() . '.xml']);
-            return false;
-        }
-
-        $sql = self::$dataBase->tableExists(static::tableName()) ?
-            DataBaseTools::checkTable(static::tableName(), $xmlCols, $xmlCons) :
-            DataBaseTools::generateTable(static::tableName(), $xmlCols, $xmlCons) . $this->install();
-
-        if ($sql !== '' && false === self::$dataBase->exec($sql)) {
-            Tools::log()->critical('check-table', ['%tableName%' => static::tableName()]);
-            Cache::clear();
-            return false;
-        }
-
-        return true;
     }
 
     /**
