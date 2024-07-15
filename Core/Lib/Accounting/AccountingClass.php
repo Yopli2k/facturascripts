@@ -127,17 +127,9 @@ abstract class AccountingClass extends AccountingAccounts
         }
 
         // add tax register data
-        /*
-         * 08-07-2024 - José Antonio Cuello
-         * Se quita porque al indicar la base imponible sale el movimiento
-         * de la subcuenta de recargo en la liquidación de impuestos (Modelo 303).
-         *
-         * $line->baseimponible = (float)$values['neto'];
-         * $line->recargo = (float)$values['recargo'];
-         */
-        $line->baseimponible = 0;
+        $line->baseimponible = (float)$values['neto'];
+        $line->recargo = (float)$values['recargo'];
         $line->iva = 0;
-        $line->recargo = 0;
         $line->cifnif = $this->document->cifnif;
         $line->codserie = $this->document->codserie;
         $line->documento = $this->document->codigo;
