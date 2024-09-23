@@ -19,8 +19,8 @@
 
 namespace FacturaScripts\Core\Lib\ListFilter;
 
-use FacturaScripts\Core\Base\Translator;
 use FacturaScripts\Core\Base\Utils;
+use FacturaScripts\Core\Translator;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -159,7 +159,7 @@ abstract class BaseFilter
      */
     protected function onChange(): string
     {
-        return $this->autosubmit ? ' onchange="this.form.submit();"' : '';
+        return $this->autosubmit ? ' onchange="this.form.onsubmit(); this.form.submit();"' : '';
     }
 
     /**

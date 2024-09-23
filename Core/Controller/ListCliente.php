@@ -59,34 +59,35 @@ class ListCliente extends ListController
         }
     }
 
-    protected function createViewBankAccounts(string $viewName = 'ListCuentaBancoCliente')
+    protected function createViewBankAccounts(string $viewName = 'ListCuentaBancoCliente'): void
     {
-        $this->addView($viewName, 'CuentaBancoCliente', 'bank-accounts', 'fas fa-piggy-bank');
-        $this->addSearchFields($viewName, ['codcuenta', 'descripcion', 'iban', 'swift']);
-        $this->addOrderBy($viewName, ['codcuenta'], 'bank-mandate');
-        $this->addOrderBy($viewName, ['descripcion'], 'description');
-        $this->addOrderBy($viewName, ['iban'], 'iban');
-        $this->addOrderBy($viewName, ['fmandato', 'codcuenta'], 'bank-mandate-date', 2);
+        $this->addView($viewName, 'CuentaBancoCliente', 'bank-accounts', 'fas fa-piggy-bank')
+            ->addSearchFields(['codcuenta', 'descripcion', 'iban', 'swift'])
+            ->addOrderBy(['codcuenta'], 'bank-mandate')
+            ->addOrderBy(['descripcion'], 'description')
+            ->addOrderBy(['iban'], 'iban')
+            ->addOrderBy(['fmandato', 'codcuenta'], 'bank-mandate-date', 2);
 
-        // disable buttons
-        $this->setSettings($viewName, 'btnDelete', false);
-        $this->setSettings($viewName, 'btnNew', false);
-        $this->setSettings($viewName, 'checkBoxes', false);
+        // desactivamos botones
+        $this->tab($viewName)
+            ->setSettings('btnDelete', false)
+            ->setSettings('btnNew', false)
+            ->setSettings('checkBoxes', false);
     }
 
-    protected function createViewContacts(string $viewName = 'ListContacto')
+    protected function createViewContacts(string $viewName = 'ListContacto'): void
     {
-        $this->addView($viewName, 'Contacto', 'addresses-and-contacts', 'fas fa-address-book');
-        $this->addSearchFields($viewName, [
-            'apellidos', 'codpostal', 'descripcion', 'direccion', 'email', 'empresa', 'lastip',
-            'nombre', 'observaciones', 'telefono1', 'telefono2'
-        ]);
-        $this->addOrderBy($viewName, ['descripcion'], 'description');
-        $this->addOrderBy($viewName, ['direccion'], 'address');
-        $this->addOrderBy($viewName, ['nombre'], 'name');
-        $this->addOrderBy($viewName, ['fechaalta'], 'creation-date', 2);
+        $this->addView($viewName, 'Contacto', 'addresses-and-contacts', 'fas fa-address-book')
+            ->addOrderBy(['descripcion'], 'description')
+            ->addOrderBy(['direccion'], 'address')
+            ->addOrderBy(['nombre'], 'name')
+            ->addOrderBy(['fechaalta'], 'creation-date', 2)
+            ->addSearchFields([
+                'apartado', 'apellidos', 'codpostal', 'descripcion', 'direccion', 'email', 'empresa',
+                'nombre', 'observaciones', 'telefono1', 'telefono2'
+            ]);
 
-        // filters
+        // filtros
         $values = [
             [
                 'label' => Tools::lang()->trans('customers'),
@@ -115,23 +116,25 @@ class ListCliente extends ListController
             $this->addFilterSelect($viewName, 'ciudad', 'city', 'ciudad', $cities);
         }
 
+        $this->addFilterAutocomplete($viewName, 'codpostal', 'zip-code', 'codpostal', 'contactos', 'codpostal');
+
         $this->addFilterCheckbox($viewName, 'verificado', 'verified', 'verificado');
     }
 
-    protected function createViewCustomers(string $viewName = 'ListCliente')
+    protected function createViewCustomers(string $viewName = 'ListCliente'): void
     {
-        $this->addView($viewName, 'Cliente', 'customers', 'fas fa-users');
-        $this->addOrderBy($viewName, ['codcliente'], 'code');
-        $this->addOrderBy($viewName, ['LOWER(nombre)'], 'name', 1);
-        $this->addOrderBy($viewName, ['cifnif'], 'fiscal-number');
-        $this->addOrderBy($viewName, ['fechaalta', 'codcliente'], 'creation-date');
-        $this->addOrderBy($viewName, ['riesgoalcanzado'], 'current-risk');
-        $this->addSearchFields($viewName, [
-            'cifnif', 'codcliente', 'codsubcuenta', 'email', 'nombre', 'observaciones', 'razonsocial',
-            'telefono1', 'telefono2'
-        ]);
+        $this->addView($viewName, 'Cliente', 'customers', 'fas fa-users')
+            ->addOrderBy(['codcliente'], 'code')
+            ->addOrderBy(['LOWER(nombre)'], 'name', 1)
+            ->addOrderBy(['cifnif'], 'fiscal-number')
+            ->addOrderBy(['fechaalta', 'codcliente'], 'creation-date')
+            ->addOrderBy(['riesgoalcanzado'], 'current-risk')
+            ->addSearchFields([
+                'cifnif', 'codcliente', 'codsubcuenta', 'email', 'nombre', 'observaciones', 'razonsocial',
+                'telefono1', 'telefono2'
+            ]);
 
-        // filters
+        // filtros
         $this->addFilterSelectWhere($viewName, 'status', [
             ['label' => Tools::lang()->trans('only-active'), 'where' => [new DataBaseWhere('debaja', false)]],
             ['label' => Tools::lang()->trans('only-suspended'), 'where' => [new DataBaseWhere('debaja', true)]],
@@ -143,6 +146,9 @@ class ListCliente extends ListController
             ['label' => Tools::lang()->trans('company'), 'where' => [new DataBaseWhere('personafisica', false)]]
         ]);
 
+        $fiscalIds = $this->codeModel->all('clientes', 'tipoidfiscal', 'tipoidfiscal');
+        $this->addFilterSelect($viewName, 'tipoidfiscal', 'fiscal-id', 'tipoidfiscal', $fiscalIds);
+
         $groupValues = $this->codeModel->all('gruposclientes', 'codgrupo', 'nombre');
         $this->addFilterSelect($viewName, 'codgrupo', 'group', 'codgrupo', $groupValues);
 
@@ -152,13 +158,15 @@ class ListCliente extends ListController
 
         $vatRegimes = $this->codeModel->all('clientes', 'regimeniva', 'regimeniva');
         $this->addFilterSelect($viewName, 'regimeniva', 'vat-regime', 'regimeniva', $vatRegimes);
+
+        $this->addFilterNumber($viewName, 'riesgoalcanzado', 'current-risk', 'riesgoalcanzado');
     }
 
-    protected function createViewGroups(string $viewName = 'ListGrupoClientes')
+    protected function createViewGroups(string $viewName = 'ListGrupoClientes'): void
     {
-        $this->addView($viewName, 'GrupoClientes', 'groups', 'fas fa-users-cog');
-        $this->addSearchFields($viewName, ['nombre', 'codgrupo']);
-        $this->addOrderBy($viewName, ['codgrupo'], 'code');
-        $this->addOrderBy($viewName, ['nombre'], 'name', 1);
+        $this->addView($viewName, 'GrupoClientes', 'groups', 'fas fa-users-cog')
+            ->addSearchFields(['nombre', 'codgrupo'])
+            ->addOrderBy(['codgrupo'], 'code')
+            ->addOrderBy(['nombre'], 'name', 1);
     }
 }

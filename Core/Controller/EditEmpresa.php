@@ -22,7 +22,7 @@ namespace FacturaScripts\Core\Controller;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use FacturaScripts\Core\Lib\ExtendedController\BaseView;
 use FacturaScripts\Core\Lib\ExtendedController\EditController;
-use FacturaScripts\Dinamic\Model\Almacen;
+use FacturaScripts\Core\Tools;
 use FacturaScripts\Dinamic\Lib\RegimenIVA;
 
 /**
@@ -55,50 +55,44 @@ class EditEmpresa extends EditController
             return true;
         }
 
-        $model->checkVies();
+        if ($model->checkVies()) {
+            Tools::log()->notice('vies-check-success', ['%vat-number%' => $model->cifnif]);
+        }
+
         return true;
     }
 
     protected function createViews()
     {
         parent::createViews();
-        $this->createViewSettings();
         $this->createViewWarehouse();
         $this->createViewBankAccounts();
         $this->createViewPaymentMethods();
         $this->createViewExercises();
     }
 
-    protected function createViewBankAccounts(string $viewName = 'ListCuentaBanco')
+    protected function createViewBankAccounts(string $viewName = 'ListCuentaBanco'): void
     {
-        $this->addListView($viewName, 'CuentaBanco', 'bank-accounts', 'fas fa-piggy-bank');
-        $this->views[$viewName]->disableColumn('company');
+        $this->addListView($viewName, 'CuentaBanco', 'bank-accounts', 'fas fa-piggy-bank')
+            ->disableColumn('company');
     }
 
-    protected function createViewExercises(string $viewName = 'ListEjercicio')
+    protected function createViewExercises(string $viewName = 'ListEjercicio'): void
     {
-        $this->addListView($viewName, 'Ejercicio', 'exercises', 'fas fa-calendar-alt');
-        $this->views[$viewName]->disableColumn('company');
+        $this->addListView($viewName, 'Ejercicio', 'exercises', 'fas fa-calendar-alt')
+            ->disableColumn('company');
     }
 
-    protected function createViewPaymentMethods(string $viewName = 'ListFormaPago')
+    protected function createViewPaymentMethods(string $viewName = 'ListFormaPago'): void
     {
-        $this->addListView($viewName, 'FormaPago', 'payment-method', 'fas fa-credit-card');
-        $this->views[$viewName]->disableColumn('company');
+        $this->addListView($viewName, 'FormaPago', 'payment-method', 'fas fa-credit-card')
+            ->disableColumn('company');
     }
 
-    protected function createViewSettings(string $viewName = 'EditEmpresaSettings')
+    protected function createViewWarehouse(string $viewName = 'EditAlmacen'): void
     {
-        if ($this->empresa->count() > 1) {
-            $this->addEditView($viewName, 'EmpresaSettings', 'default', 'fas fa-tools');
-            $this->setSettings($viewName, 'btnDelete', false);
-        }
-    }
-
-    protected function createViewWarehouse(string $viewName = 'ListAlmacen')
-    {
-        $this->addListView($viewName, 'Almacen', 'warehouses', 'fas fa-warehouse');
-        $this->views[$viewName]->disableColumn('company');
+        $this->addListView($viewName, 'Almacen', 'warehouses', 'fas fa-warehouse')
+            ->disableColumn('company');
     }
 
     protected function execPreviousAction($action): bool
@@ -123,15 +117,7 @@ class EditEmpresa extends EditController
         $mvn = $this->getMainViewName();
 
         switch ($viewName) {
-            case 'EditEmpresaSettings':
-                $idcompany = $this->getViewModelValue($this->getMainViewName(), 'idempresa');
-                $view->loadData('', [new DataBaseWhere('idempresa', $idcompany)]);
-                if ($view->count === 0) {
-                    $view->model->idempresa = $idcompany;
-                }
-                break;
-
-            case 'ListAlmacen':
+            case 'EditAlmacen':
             case 'ListCuentaBanco':
             case 'ListEjercicio':
             case 'ListFormaPago':
@@ -143,13 +129,12 @@ class EditEmpresa extends EditController
             case $mvn:
                 parent::loadData($viewName, $view);
                 $this->setCustomWidgetValues($view);
-                if ($view->model->exists()) {
+                if ($view->model->exists() && $view->model->cifnif) {
                     $this->addButton($viewName, [
                         'action' => 'check-vies',
                         'color' => 'info',
                         'icon' => 'fas fa-check-double',
-                        'label' => 'check-vies',
-                        'type' => 'action'
+                        'label' => 'check-vies'
                     ]);
                 }
                 break;
@@ -160,7 +145,7 @@ class EditEmpresa extends EditController
         }
     }
 
-    protected function setCustomWidgetValues(BaseView &$view)
+    protected function setCustomWidgetValues(BaseView &$view): void
     {
         $columnVATType = $view->columnForName('vat-regime');
         if ($columnVATType && $columnVATType->widget->getType() === 'select') {
@@ -170,22 +155,6 @@ class EditEmpresa extends EditController
         $columnVATException = $view->columnForName('vat-exception');
         if ($columnVATException && $columnVATException->widget->getType() === 'select') {
             $columnVATException->widget->setValuesFromArrayKeys(RegimenIVA::allExceptions(), true, true);
-        }
-
-        $columnLogo = $view->columnForName('logo');
-        if ($columnLogo && $columnLogo->widget->getType() === 'select') {
-            $images = $this->codeModel->all('attached_files', 'idfile', 'filename', true, [
-                new DataBaseWhere('mimetype', 'image/gif,image/jpeg,image/png', 'IN')
-            ]);
-            $columnLogo->widget->setValuesFromCodeModel($images);
-        }
-
-        $columnWarehouse = $this->views['EditEmpresaSettings']->columnForName('warehouse');
-        if ($columnWarehouse && $columnWarehouse->widget->getType() === 'select') {
-            $warehouse = $this->codeModel->all(Almacen::tableName(), 'codalmacen', 'nombre', true, [
-                new DataBaseWhere('idempresa', $view->model->idempresa),
-            ]);
-            $columnWarehouse->widget->setValuesFromCodeModel($warehouse);
         }
     }
 }
