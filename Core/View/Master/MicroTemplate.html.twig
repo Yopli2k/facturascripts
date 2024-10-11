@@ -18,9 +18,11 @@
      *
      */
 #}
+{% import 'Macro/GoogleTagManager.html.twig' as GoogleTagManager %}
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="{{ constant('FS_LANG') | slice(0, 2) }}" xml:lang="{{ constant('FS_LANG') | slice(0, 2) }}" >
     <head>
+        {{ GoogleTagManager.head() }}
         {% block meta %}
             <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
             <title>{{ fsc.title }}</title>
@@ -35,25 +37,30 @@
         {% endblock %}
         {% block css %}
             <link rel="stylesheet" href="{{ asset('node_modules/bootstrap/dist/css/bootstrap.min.css') }}" />
-            <link rel="stylesheet" href="{{ asset('node_modules/@fortawesome/fontawesome-free/css/all.min.css') }}" />
+            <link rel="stylesheet" href="{{ asset('node_modules/@fortawesome/fontawesome-free/css/all.min.css') }}"/>
         {% endblock %}
         {# Adds custom CSS assets #}
         {% for css in assetManager.get('css') %}
             <link rel="stylesheet" href="{{ css }}" />
         {% endfor %}
         {% block javascripts %}
-            <script type="text/javascript" src="{{ asset('node_modules/jquery/dist/jquery.min.js') }}"></script>
-            <script type="text/javascript" src="{{ asset('node_modules/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
+            <script src="{{ asset('node_modules/jquery/dist/jquery.min.js') }}"></script>
+            <script src="{{ asset('node_modules/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
+            <script src="{{ asset('node_modules/@fortawesome/fontawesome-free/js/all.min.js') }}"></script>
         {% endblock %}
         {# Adds custom JS assets #}
         {% for js in assetManager.get('js') %}
             <script src="{{ js }}"></script>
         {% endfor %}
-        {{ debugBarRender.renderHead() | raw }}
+        {% if debugBarRender %}
+            {{ debugBarRender.renderHead() | raw }}
+        {% endif %}
     </head>
     {% block fullBody %}
         <body>
+            {{ GoogleTagManager.body() }}
             {% block messages %}
+                {% include 'Macro/Toasts.html.twig' %}
                 {% from 'Macro/Utils.html.twig' import message as showMessage %}
                 {{ showMessage(log, ['error', 'critical'], 'danger') }}
                 {{ showMessage(log, ['warning'], 'warning') }}
@@ -62,7 +69,10 @@
             {% endblock %}
             {% block body %}
             {% endblock %}
-            {{ debugBarRender.render() | raw }}
+            {% if debugBarRender %}
+                {{ debugBarRender.render() | raw }}
+            {% endif %}
+            <!-- execution time: {{ executionTime() }} s -->
         </body>
     {% endblock %}
 </html>

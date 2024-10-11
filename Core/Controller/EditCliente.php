@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2022 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2024 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -22,20 +22,20 @@ namespace FacturaScripts\Core\Controller;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use FacturaScripts\Core\Lib\ExtendedController\BaseView;
 use FacturaScripts\Core\Lib\ExtendedController\ComercialContactController;
+use FacturaScripts\Core\Tools;
 use FacturaScripts\Dinamic\Lib\CustomerRiskTools;
 use FacturaScripts\Dinamic\Lib\RegimenIVA;
 
 /**
  * Controller to edit a single item from the Cliente model
  *
- * @author       Carlos García Gómez        <carlos@facturascripts.com>
+ * @author       Carlos García Gómez           <carlos@facturascripts.com>
  * @author       Jose Antonio Cuello Principal <yopli2000@gmail.com>
- * @author       Fco. Antonio Moreno Pérez  <famphuelva@gmail.com>
- * @collaborator Daniel Fernández Giménez   <hola@danielfg.es>
+ * @author       Fco. Antonio Moreno Pérez     <famphuelva@gmail.com>
+ * @collaborator Daniel Fernández Giménez      <hola@danielfg.es>
  */
 class EditCliente extends ComercialContactController
 {
-
     /**
      * Returns the customer's risk on pending delivery notes.
      *
@@ -45,7 +45,7 @@ class EditCliente extends ComercialContactController
     {
         $codcliente = $this->getViewModelValue('EditCliente', 'codcliente');
         $total = empty($codcliente) ? 0 : CustomerRiskTools::getDeliveryNotesRisk($codcliente);
-        return $this->toolBox()->coins()->format($total);
+        return Tools::money($total);
     }
 
     public function getImageUrl(): string
@@ -63,7 +63,7 @@ class EditCliente extends ComercialContactController
     {
         $codcliente = $this->getViewModelValue('EditCliente', 'codcliente');
         $total = empty($codcliente) ? 0 : CustomerRiskTools::getInvoicesRisk($codcliente);
-        return $this->toolBox()->coins()->format($total);
+        return Tools::money($total);
     }
 
     public function getModelClassName(): string
@@ -80,7 +80,7 @@ class EditCliente extends ComercialContactController
     {
         $codcliente = $this->getViewModelValue('EditCliente', 'codcliente');
         $total = empty($codcliente) ? 0 : CustomerRiskTools::getOrdersRisk($codcliente);
-        return $this->toolBox()->coins()->format($total);
+        return Tools::money($total);
     }
 
     public function getPageData(): array
@@ -95,6 +95,9 @@ class EditCliente extends ComercialContactController
     protected function createDocumentView(string $viewName, string $model, string $label)
     {
         $this->createCustomerListView($viewName, $model, $label);
+
+        // botones
+        $this->setSettings($viewName, 'btnPrint', true);
         $this->addButtonGroupDocument($viewName);
         $this->addButtonApproveDocument($viewName);
     }
@@ -102,6 +105,9 @@ class EditCliente extends ComercialContactController
     protected function createInvoiceView(string $viewName)
     {
         $this->createCustomerListView($viewName, 'FacturaCliente', 'invoices');
+
+        // botones
+        $this->setSettings($viewName, 'btnPrint', true);
         $this->addButtonLockInvoice($viewName);
     }
 
@@ -164,11 +170,17 @@ class EditCliente extends ComercialContactController
             return false;
         }
 
-        // redirect to returnUrl if return is defined
-        $returnUrl = $this->request->query->get('return');
-        if (!empty($returnUrl)) {
-            $model = $this->views[$this->active]->model;
-            $this->redirect($returnUrl . '?' . $model->primaryColumn() . '=' . $model->primaryColumnValue());
+        // redirect to return_url if return is defined
+        $return_url = $this->request->query->get('return');
+        if (empty($return_url)) {
+            return true;
+        }
+
+        $model = $this->views[$this->active]->model;
+        if (strpos($return_url, '?') === false) {
+            $this->redirect($return_url . '?' . $model->primaryColumn() . '=' . $model->primaryColumnValue());
+        } else {
+            $this->redirect($return_url . '&' . $model->primaryColumn() . '=' . $model->primaryColumnValue());
         }
 
         return true;
@@ -195,8 +207,12 @@ class EditCliente extends ComercialContactController
                 $view->loadData('', $where, ['idcontacto' => 'DESC']);
                 break;
 
-            case 'ListAlbaranCliente':
             case 'ListFacturaCliente':
+                $view->loadData('', $where);
+                $this->addButtonGenerateAccountingInvoices($viewName, $codcliente);
+                break;
+
+            case 'ListAlbaranCliente':
             case 'ListPedidoCliente':
             case 'ListPresupuestoCliente':
             case 'ListReciboCliente':
@@ -212,11 +228,20 @@ class EditCliente extends ComercialContactController
             case $mainViewName:
                 parent::loadData($viewName, $view);
                 $this->loadLanguageValues($viewName);
+                $this->loadExceptionVat($viewName);
                 break;
 
             default:
                 parent::loadData($viewName, $view);
                 break;
+        }
+    }
+
+    protected function loadExceptionVat(string $viewName): void
+    {
+        $column = $this->views[$viewName]->columnForName('vat-exception');
+        if ($column && $column->widget->getType() === 'select') {
+            $column->widget->setValuesFromArrayKeys(RegimenIVA::allExceptions(), true, true);
         }
     }
 
@@ -228,7 +253,7 @@ class EditCliente extends ComercialContactController
         $columnLangCode = $this->views[$viewName]->columnForName('language');
         if ($columnLangCode && $columnLangCode->widget->getType() === 'select') {
             $langs = [];
-            foreach ($this->toolBox()->i18n()->getAvailableLanguages() as $key => $value) {
+            foreach (Tools::lang()->getAvailableLanguages() as $key => $value) {
                 $langs[] = ['value' => $key, 'title' => $value];
             }
 

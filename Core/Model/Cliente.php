@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2023 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2013-2024 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -25,15 +25,20 @@ use FacturaScripts\Core\Lib\Vies;
 use FacturaScripts\Core\Tools;
 use FacturaScripts\Dinamic\Model\Contacto as DinContacto;
 use FacturaScripts\Dinamic\Model\CuentaBancoCliente as DinCuentaBancoCliente;
+use FacturaScripts\Dinamic\Model\CuentaEspecial as DinCuentaEspecial;
+use FacturaScripts\Dinamic\Model\GrupoClientes as DinGrupoClientes;
+use FacturaScripts\Dinamic\Model\Subcuenta as DinSubcuenta;
 
 /**
- * The client. You can have one or more associated addresses and subaccounts.
+ * The client. You can have one or more associated addresses and accounts.
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
 class Cliente extends Base\ComercialContact
 {
     use Base\ModelTrait;
+
+    const SPECIAL_ACCOUNT = 'CLIENT';
 
     /** @var string */
     public $codagente;
@@ -47,6 +52,9 @@ class Cliente extends Base\ComercialContact
     /** @var string */
     public $diaspago;
 
+    /** @var string */
+    public $excepcioniva;
+
     /** @var integer */
     public $idcontactoenv;
 
@@ -59,10 +67,10 @@ class Cliente extends Base\ComercialContact
     /** @var float */
     public $riesgomax;
 
-    public function checkVies(): bool
+    public function checkVies(bool $msg = true): bool
     {
         $codiso = Paises::get($this->getDefaultAddress()->codpais)->codiso ?? '';
-        return Vies::check($this->cifnif ?? '', $codiso) === 1;
+        return Vies::check($this->cifnif ?? '', $codiso, $msg) === 1;
     }
 
     public function clear()
@@ -124,6 +132,13 @@ class Cliente extends Base\ComercialContact
         return $contact;
     }
 
+    public function getGroup(): GrupoClientes
+    {
+        $group = new DinGrupoClientes();
+        $group->loadFromCode($this->codgrupo);
+        return $group;
+    }
+
     /**
      * Returns the preferred payment days for this customer.
      *
@@ -139,6 +154,48 @@ class Cliente extends Base\ComercialContact
         }
 
         return $days;
+    }
+
+    public function getSubcuenta(string $codejercicio, bool $crear): Subcuenta
+    {
+        // ya tiene una subcuenta asignada
+        if ($this->codsubcuenta) {
+            // buscamos la subcuenta para el ejercicio
+            $subAccount = new DinSubcuenta();
+            $where = [
+                new DataBaseWhere('codsubcuenta', $this->codsubcuenta),
+                new DataBaseWhere('codejercicio', $codejercicio),
+            ];
+            if ($subAccount->loadFromCode('', $where)) {
+                return $subAccount;
+            }
+
+            // no hemos encontrado la subcuenta
+            // si no queremos crearla, devolvemos una vacía
+            if (false === $crear) {
+                return new DinSubcuenta();
+            }
+
+            // buscamos la cuenta especial
+            $special = new DinCuentaEspecial();
+            if (false === $special->loadFromCode(static::SPECIAL_ACCOUNT)) {
+                return new DinSubcuenta();
+            }
+
+            // ahora creamos la subcuenta
+            return $special->getCuenta($codejercicio)->createSubcuenta($this->codsubcuenta, $this->razonsocial);
+        }
+
+        // ¿El grupo tiene subcuenta?
+        $group = $this->getGroup();
+        if ($group->codsubcuenta) {
+            return $group->getSubcuenta($codejercicio, $crear);
+        }
+
+        // si no creamos la subcuenta, devolvemos una vacía
+        return $crear ?
+            $this->createSubcuenta($codejercicio) :
+            new DinSubcuenta();
     }
 
     public function install(): string
@@ -193,6 +250,39 @@ class Cliente extends Base\ComercialContact
         }
         $this->diaspago = empty($arrayDias) ? null : implode(',', $arrayDias);
         return parent::test();
+    }
+
+    protected function createSubcuenta(string $codejercicio): Subcuenta
+    {
+        // buscamos la cuenta especial
+        $special = new DinCuentaEspecial();
+        if (false === $special->loadFromCode(static::SPECIAL_ACCOUNT)) {
+            return new DinSubcuenta();
+        }
+
+        // buscamos la cuenta
+        $cuenta = $special->getCuenta($codejercicio);
+        if (empty($cuenta->codcuenta)) {
+            return new DinSubcuenta();
+        }
+
+        // obtenemos un código de subcuenta libre
+        $code = $cuenta->getFreeSubjectAccountCode($this);
+        if (empty($code)) {
+            return new DinSubcuenta();
+        }
+
+        // creamos la subcuenta
+        $subAccount = $cuenta->createSubcuenta($code, $this->razonsocial);
+        if (false === $subAccount->save()) {
+            return new DinSubcuenta();
+        }
+
+        // guardamos el código de subcuenta
+        $this->codsubcuenta = $subAccount->codsubcuenta;
+        $this->save();
+
+        return $subAccount;
     }
 
     protected function saveInsert(array $values = []): bool

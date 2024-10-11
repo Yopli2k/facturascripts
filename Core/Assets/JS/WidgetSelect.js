@@ -20,12 +20,13 @@ function widgetSelectGetData(select, parent) {
     let data = {
         action: 'select',
         activetab: select.closest('form').find('input[name="activetab"]').val(),
-        term: getValueTypeParent(parent),
         field: select.attr("data-field"),
         fieldcode: select.attr("data-fieldcode"),
         fieldfilter: select.attr("data-fieldfilter"),
         fieldtitle: select.attr("data-fieldtitle"),
+        required: select.attr('required') === 'required' ? 1 : 0,
         source: select.attr("data-source"),
+        term: getValueTypeParent(parent),
     };
 
     $.ajax({
@@ -37,8 +38,10 @@ function widgetSelectGetData(select, parent) {
             select.html('');
             results.forEach(function (element) {
                 let selected = (element.key == select.attr('value')) ? 'selected' : '';
-                select.append('<option value="' + element.key + '" ' + selected + '>' + element.value + '</option>');
+                let key = (element.key == null) ? '' : element.key;
+                select.append('<option value="' + key + '" ' + selected + '>' + element.value + '</option>');
             });
+            select.change();
         },
         error: function (msg) {
             alert(msg.status + " " + msg.responseText);
@@ -47,6 +50,11 @@ function widgetSelectGetData(select, parent) {
 }
 
 $(document).ready(function () {
+    $('select.select2').select2({
+        width: 'style',
+        theme: 'bootstrap4'
+    });
+
     $('.parentSelect').each(function () {
         let parentStr = $(this).attr('parent');
         if (parentStr === 'undefined' || parentStr === false || parentStr === '') {

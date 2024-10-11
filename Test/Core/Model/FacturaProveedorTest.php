@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2021-2023 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2021-2024 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -25,7 +25,9 @@ use FacturaScripts\Core\DataSrc\Empresas;
 use FacturaScripts\Core\DataSrc\Retenciones;
 use FacturaScripts\Core\Lib\FacturaProveedorRenumber;
 use FacturaScripts\Core\Lib\InvoiceOperation;
+use FacturaScripts\Core\Lib\ProductType;
 use FacturaScripts\Core\Lib\RegimenIVA;
+use FacturaScripts\Core\Lib\Vies;
 use FacturaScripts\Core\Model\FacturaProveedor;
 use FacturaScripts\Test\Traits\DefaultSettingsTrait;
 use FacturaScripts\Test\Traits\LogErrorsTrait;
@@ -312,13 +314,21 @@ final class FacturaProveedorTest extends TestCase
         // añadimos una línea
         $firstLine = $invoice->getNewLine();
         $firstLine->cantidad = 2;
-        $firstLine->pvpunitario = self::PRODUCT1_COST;
+        $firstLine->pvpunitario = 100;
         $this->assertTrue($firstLine->save(), 'cant-save-first-line');
 
         // recalculamos
         $lines = $invoice->getLines();
         $this->assertTrue(Calculator::calculate($invoice, $lines, true), 'cant-update-invoice');
-        $this->assertGreaterThan(0, $invoice->totalrecargo, 'bad-totalrecargo');
+
+        // comprobamos los totales
+        $this->assertEquals(200, $invoice->neto, 'bad-neto');
+        $this->assertEquals(200, $invoice->netosindto, 'bad-netosindto');
+        $this->assertEquals(42, $invoice->totaliva, 'bad-totaliva');
+        $this->assertEquals(10.4, $invoice->totalrecargo, 'bad-totalrecargo');
+        $this->assertEquals(0, $invoice->totalirpf, 'bad-totalirpf');
+        $this->assertEquals(0, $invoice->totalsuplidos, 'bad-totalsuplidos');
+        $this->assertEquals(252.4, $invoice->total, 'bad-total');
 
         // comprobamos el asiento
         $entry = $invoice->getAccountingEntry();
@@ -329,6 +339,52 @@ final class FacturaProveedorTest extends TestCase
         $this->assertTrue($invoice->delete(), 'cant-delete-invoice');
         $this->assertTrue($supplier->getDefaultAddress()->delete(), 'contacto-cant-delete');
         $this->assertTrue($supplier->delete(), 'cant-delete-supplier');
+    }
+
+    public function testCompanyWithSurcharge(): void
+    {
+        // creamos una empresa con el régimen de recargo de equivalencia
+        $company = $this->getRandomCompany();
+        $company->regimeniva = RegimenIVA::TAX_SYSTEM_SURCHARGE;
+        $this->assertTrue($company->save(), 'cant-create-company');
+
+        // creamos un proveedor
+        $supplier = $this->getRandomSupplier();
+        $this->assertTrue($supplier->save(), 'cant-create-supplier');
+
+        // creamos la factura
+        $invoice = new FacturaProveedor();
+        foreach ($company->getWarehouses() as $warehouse) {
+            $invoice->setWarehouse($warehouse->codalmacen);
+            break;
+        }
+        $invoice->setSubject($supplier);
+        $this->assertTrue($invoice->save(), 'cant-create-invoice');
+
+        // añadimos una línea
+        $firstLine = $invoice->getNewLine();
+        $firstLine->cantidad = 2;
+        $firstLine->pvpunitario = 50;
+        $this->assertTrue($firstLine->save(), 'cant-save-first-line');
+
+        // recalculamos
+        $lines = $invoice->getLines();
+        $this->assertTrue(Calculator::calculate($invoice, $lines, true), 'cant-update-invoice');
+
+        // comprobamos los totales
+        $this->assertEquals(100, $invoice->neto, 'bad-neto');
+        $this->assertEquals(100, $invoice->netosindto, 'bad-netosindto');
+        $this->assertEquals(21, $invoice->totaliva, 'bad-totaliva');
+        $this->assertEquals(0, $invoice->totalrecargo, 'bad-totalrecargo');
+        $this->assertEquals(0, $invoice->totalirpf, 'bad-totalirpf');
+        $this->assertEquals(0, $invoice->totalsuplidos, 'bad-totalsuplidos');
+        $this->assertEquals(121, $invoice->total, 'bad-total');
+
+        // eliminamos
+        $this->assertTrue($invoice->delete(), 'cant-delete-invoice');
+        $this->assertTrue($supplier->getDefaultAddress()->delete(), 'contacto-cant-delete');
+        $this->assertTrue($supplier->delete(), 'cant-delete-supplier');
+        $this->assertTrue($company->delete(), 'cant-delete-company');
     }
 
     public function testCreateInvoiceWithSupplied(): void
@@ -520,6 +576,11 @@ final class FacturaProveedorTest extends TestCase
 
     public function testSetIntraCommunity(): void
     {
+        // comprobamos si el VIES funciona
+        if (Vies::getLastError() != '') {
+            $this->markTestSkipped('Vies service is not available');
+        }
+
         // establecemos la empresa en España con un cif español
         $company = Empresas::default();
         $company->codpais = 'ESP';
@@ -568,6 +629,55 @@ final class FacturaProveedorTest extends TestCase
         $this->assertTrue($invoice->delete());
         $this->assertTrue($address->delete());
         $this->assertTrue($supplier->delete());
+    }
+
+    public function testBuyUsedGoods(): void
+    {
+        // creamos una empresa con el régimen de bienes usados
+        $company = $this->getRandomCompany();
+        $company->regimeniva = RegimenIVA::TAX_SYSTEM_USED_GOODS;
+        $this->assertTrue($company->save());
+
+        // creamos un producto de segunda mano
+        $product = $this->getRandomProduct();
+        $product->tipo = ProductType::SECOND_HAND;
+        $this->assertTrue($product->save());
+
+        // creamos un proveedor
+        $supplier = $this->getRandomSupplier();
+        $this->assertTrue($supplier->save());
+
+        // creamos una factura
+        $invoice = new FacturaProveedor();
+        foreach ($company->getWarehouses() as $warehouse) {
+            $invoice->setWarehouse($warehouse->codalmacen);
+            break;
+        }
+        $invoice->setSubject($supplier);
+        $this->assertTrue($invoice->save());
+
+        // añadimos el producto
+        $line = $invoice->getNewProductLine($product->referencia);
+        $line->cantidad = 1;
+        $line->pvpunitario = 900;
+        $this->assertTrue($line->save());
+
+        // recalculamos
+        $lines = $invoice->getLines();
+        $this->assertTrue(Calculator::calculate($invoice, $lines, true));
+
+        // comprobamos los totales
+        $this->assertEquals(900, $invoice->neto);
+        $this->assertEquals(0, $invoice->totaliva);
+        $this->assertEquals(0, $invoice->totalirpf);
+        $this->assertEquals(900, $invoice->total);
+
+        // eliminamos
+        $this->assertTrue($invoice->delete());
+        $this->assertTrue($supplier->getDefaultAddress()->delete());
+        $this->assertTrue($supplier->delete());
+        $this->assertTrue($product->delete());
+        $this->assertTrue($company->delete());
     }
 
     protected function tearDown(): void

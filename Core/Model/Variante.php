@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2018-2023 Carlos García Gómez <carlos@facturascripts.com>
+ * Copyright (C) 2018-2024 Carlos García Gómez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -20,6 +20,9 @@
 namespace FacturaScripts\Core\Model;
 
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
+use FacturaScripts\Core\DbQuery;
+use FacturaScripts\Core\Tools;
+use FacturaScripts\Dinamic\Lib\ProductType;
 use FacturaScripts\Dinamic\Model\AtributoValor as DinAtributoValor;
 use FacturaScripts\Dinamic\Model\Producto as DinProducto;
 use FacturaScripts\Dinamic\Model\ProductoImagen as DinProductoImagen;
@@ -131,12 +134,13 @@ class Variante extends Base\ModelClass
     {
         $results = [];
         $field = empty($fieldCode) ? $this->primaryColumn() : $fieldCode;
-        $find = $this->toolBox()->utils()->noHtml(mb_strtolower($query, 'UTF8'));
+        $find = Tools::noHtml(mb_strtolower($query, 'UTF8'));
 
         // añadimos opciones al inicio del where
         array_unshift(
             $where,
             new DataBaseWhere('LOWER(v.referencia)', $find . '%', 'LIKE'),
+            new DataBaseWhere('LOWER(v.referencia)', '%' . $find, 'LIKE', 'OR'),
             new DataBaseWhere('LOWER(v.codbarras)', $find, '=', 'OR'),
             new DataBaseWhere('LOWER(p.descripcion)', $find, 'LIKE', 'OR')
         );
@@ -163,6 +167,11 @@ class Variante extends Base\ModelClass
 
     public function description(bool $onlyAttributes = false): string
     {
+        $pipeReturn = $this->pipe('description', $onlyAttributes);
+        if ($pipeReturn) {
+            return $pipeReturn;
+        }
+
         $description = $onlyAttributes ? '' : $this->getProducto()->descripcion;
         return $this->getAttributeDescription(
             $this->idatributovalor1,
@@ -177,7 +186,13 @@ class Variante extends Base\ModelClass
     {
         // no se puede eliminar la variante principal
         if ($this->referencia === $this->getProducto()->referencia) {
-            $this->toolBox()->i18nLog()->warning('you-cant-delete-primary-variant');
+            Tools::log()->warning('you-cant-delete-primary-variant');
+            return false;
+        }
+
+        // no podemos eliminar la variante si hay documentos relacionados
+        if ($this->isInDocuments()) {
+            Tools::log()->warning('cant-delete-variant-with-documents', ['%reference%' => $this->referencia]);
             return false;
         }
 
@@ -203,19 +218,40 @@ class Variante extends Base\ModelClass
      */
     protected function getAttributeDescription($idAttVal1, $idAttVal2, $idAttVal3, $idAttVal4, $description = '', $separator1 = "\n", $separator2 = ', '): string
     {
+        $pipeReturn = $this->pipe('getAttributeDescription', $idAttVal1, $idAttVal2, $idAttVal3, $idAttVal4, $description, $separator1, $separator2);
+        if ($pipeReturn) {
+            return $pipeReturn;
+        }
+
+        // obtenemos las descripciones de los atributos
         $attributeValue = new DinAtributoValor();
-        $extra = [];
+        $attDesc = [];
         foreach ([$idAttVal1, $idAttVal2, $idAttVal3, $idAttVal4] as $id) {
             if (!empty($id) && $attributeValue->loadFromCode($id)) {
-                $extra[] = $attributeValue->descripcion;
+                $attribute = $attributeValue->getAtributo();
+                $attDesc[] = [
+                    'position' => empty($attribute->num_selector) ? 99 : $attribute->num_selector,
+                    'value' => $attributeValue->descripcion
+                ];
             }
         }
 
-        // compose text
+        // ordenamos por posición
+        usort($attDesc, function ($a, $b) {
+            return $a['position'] <=> $b['position'];
+        });
+
+        $extra = [];
+        foreach ($attDesc as $item) {
+            $extra[] = $item['value'];
+        }
+
+        // devolvemos la descripción
         if (empty($description)) {
             return implode($separator2, $extra);
         }
 
+        // combinamos la descripción con los atributos
         return empty($extra) ? $description : implode($separator1, [$description, implode($separator2, $extra)]);
     }
 
@@ -229,7 +265,7 @@ class Variante extends Base\ModelClass
         // buscamos las imágenes propias de esta variante
         $image = new DinProductoImagen();
         $whereVar = [new DataBaseWhere('referencia', $this->referencia)];
-        $orderBy = ['id' => 'ASC'];
+        $orderBy = ['orden' => 'ASC'];
         $images = $image->all($whereVar, $orderBy, 0, 0);
 
         // si solo queremos las imágenes de la variante, terminamos
@@ -253,9 +289,37 @@ class Variante extends Base\ModelClass
         return parent::install();
     }
 
+    public function isInDocuments(): bool
+    {
+        $tables = [
+            'lineasalbaranescli', 'lineasalbaranesprov', 'lineasfacturascli', 'lineasfacturasprov',
+            'lineaspedidoscli', 'lineaspedidosprov', 'lineaspresupuestoscli', 'lineaspresupuestosprov'
+        ];
+        foreach ($tables as $table) {
+            $count = DbQuery::table($table)
+                ->whereEq('referencia', $this->referencia)
+                ->count();
+
+            if ($count > 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function priceWithTax(): float
     {
-        return $this->precio * (100 + $this->getProducto()->getTax()->iva) / 100;
+        $product = $this->getProducto();
+
+        if ($product->tipo === ProductType::SECOND_HAND) {
+            $diff = $this->precio - $this->coste;
+            $newPrice = $this->precio + ($diff * $product->getTax()->iva / 100);
+            return round($newPrice, DinProducto::ROUND_DECIMALS);
+        }
+
+        $newPrice = $this->precio * (100 + $product->getTax()->iva) / 100;
+        return round($newPrice, DinProducto::ROUND_DECIMALS);
     }
 
     public static function primaryColumn(): string
@@ -270,6 +334,10 @@ class Variante extends Base\ModelClass
 
     public function save(): bool
     {
+        $this->precio = $this->precio ?: 0.0;
+        $this->coste = $this->coste ?: 0.0;
+        $this->margen = $this->margen ?: 0.0;
+
         if ($this->margen > 0) {
             $newPrice = $this->coste * (100 + $this->margen) / 100;
             $this->precio = round($newPrice, DinProducto::ROUND_DECIMALS);
@@ -283,9 +351,19 @@ class Variante extends Base\ModelClass
         return false;
     }
 
-    public function setPriceWithTax(float $price)
+    public function setPriceWithTax(float $price): void
     {
-        $newPrice = (100 * $price) / (100 + $this->getProducto()->getTax()->iva);
+        $product = $this->getProducto();
+        $this->margen = 0;
+
+        if ($product->tipo === ProductType::SECOND_HAND) {
+            $price -= $this->coste;
+            $newPrice = $this->coste + (100 * $price) / (100 + $product->getTax()->iva);
+            $this->precio = round($newPrice, DinProducto::ROUND_DECIMALS);
+            return;
+        }
+
+        $newPrice = (100 * $price) / (100 + $product->getTax()->iva);
         $this->precio = round($newPrice, DinProducto::ROUND_DECIMALS);
     }
 
@@ -296,21 +374,20 @@ class Variante extends Base\ModelClass
 
     public function test(): bool
     {
-        $utils = $this->toolBox()->utils();
-        $this->referencia = $utils->noHtml($this->referencia);
+        $this->codbarras = Tools::noHtml($this->codbarras);
+        $this->referencia = Tools::noHtml($this->referencia);
 
         if (empty($this->referencia)) {
             $this->referencia = (string)$this->newCode('referencia');
         }
         if (strlen($this->referencia) > 30) {
-            $this->toolBox()->i18nLog()->warning(
+            Tools::log()->warning(
                 'invalid-column-lenght',
                 ['%value%' => $this->referencia, '%column%' => 'referencia', '%min%' => '1', '%max%' => '30']
             );
             return false;
         }
 
-        $this->codbarras = $utils->noHtml($this->codbarras);
         return parent::test();
     }
 
@@ -321,15 +398,22 @@ class Variante extends Base\ModelClass
 
     protected function saveInsert(array $values = []): bool
     {
+        // comprobamos si la referencia ya existe
+        $where = [new DataBaseWhere('referencia', $this->referencia)];
+        if ($this->count($where) > 0) {
+            Tools::log()->warning('duplicated-reference', ['%reference%' => $this->referencia]);
+            return false;
+        }
+
         if (false === parent::saveInsert($values)) {
             return false;
         }
 
-        // set new stock?
+        // establecemos el nuevo stock
         if ($this->stockfis != 0.0) {
             $stock = new DinStock();
             $stock->cantidad = $this->stockfis;
-            $stock->codalmacen = $this->toolBox()->appSettings()->get('default', 'codalmacen');
+            $stock->codalmacen = Tools::settings('default', 'codalmacen');
             $stock->idproducto = $this->idproducto;
             $stock->referencia = $this->referencia;
             $stock->save();

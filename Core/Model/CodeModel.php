@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2022 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2024 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -21,7 +21,8 @@ namespace FacturaScripts\Core\Model;
 
 use FacturaScripts\Core\Base\DataBase;
 use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
-use FacturaScripts\Core\Base\ToolBox;
+use FacturaScripts\Core\Cache;
+use FacturaScripts\Core\Tools;
 
 /**
  * Auxiliary model to load a list of codes and their descriptions
@@ -35,32 +36,18 @@ class CodeModel
     const MODEL_NAMESPACE = '\\FacturaScripts\\Dinamic\\Model\\';
     const SEARCH_LIMIT = 50;
 
-    /**
-     * It provides direct access to the database.
-     *
-     * @var DataBase
-     */
+    /** @var DataBase */
     protected static $dataBase;
 
-    /**
-     * Value of the code field of the model read.
-     *
-     * @var string
-     */
+    /** @var int */
+    protected static $limit;
+
+    /** @var string */
     public $code;
 
-    /**
-     * Value of the field description of the model read.
-     *
-     * @var string
-     */
+    /** @var string */
     public $description;
 
-    /**
-     * Constructor and class initializer.
-     *
-     * @param array $data
-     */
     public function __construct(array $data = [])
     {
         if (empty($data)) {
@@ -83,8 +70,18 @@ class CodeModel
      *
      * @return static[]
      */
-    public static function all($tableName, $fieldCode, $fieldDescription, $addEmpty = true, $where = []): array
+    public static function all(string $tableName, string $fieldCode, string $fieldDescription, bool $addEmpty = true, array $where = []): array
     {
+        // check cache
+        $cacheKey = $addEmpty ?
+            'table-' . $tableName . '-code-model-' . $fieldCode . '-' . $fieldDescription . '-empty' :
+            'table-' . $tableName . '-code-model-' . $fieldCode . '-' . $fieldDescription;
+        $result = Cache::get($cacheKey);
+        if (empty($where) && is_array($result)) {
+            return $result;
+        }
+
+        // initialize
         $result = [];
         if ($addEmpty) {
             $result[] = new static(['code' => null, 'description' => '------']);
@@ -99,16 +96,22 @@ class CodeModel
             }
         }
 
+        // check table
         self::initDataBase();
         if (!self::$dataBase->tableExists($tableName)) {
-            ToolBox::i18nLog()->error('table-not-found', ['%tableName%' => $tableName]);
+            Tools::log()->error('table-not-found', ['%tableName%' => $tableName]);
             return $result;
         }
 
         $sql = 'SELECT DISTINCT ' . $fieldCode . ' AS code, ' . $fieldDescription . ' AS description '
             . 'FROM ' . $tableName . DataBaseWhere::getSQLWhere($where) . ' ORDER BY 2 ASC';
-        foreach (self::$dataBase->selectLimit($sql, self::ALL_LIMIT) as $row) {
+        foreach (self::$dataBase->selectLimit($sql, self::getLimit()) as $row) {
             $result[] = new static($row);
+        }
+
+        // save cache
+        if (empty($where)) {
+            Cache::set($cacheKey, $result);
         }
 
         return $result;
@@ -147,7 +150,7 @@ class CodeModel
      *
      * @return static
      */
-    public function get($tableName, $fieldCode, $code, $fieldDescription)
+    public function get(string $tableName, string $fieldCode, $code, $fieldDescription)
     {
         // is a table or a model?
         $modelClass = self::MODEL_NAMESPACE . $tableName;
@@ -182,10 +185,15 @@ class CodeModel
      *
      * @return string
      */
-    public function getDescription($tableName, $fieldCode, $code, $fieldDescription): string
+    public function getDescription(string $tableName, string $fieldCode, $code, $fieldDescription): string
     {
         $model = $this->get($tableName, $fieldCode, $code, $fieldDescription);
         return empty($model->description) ? (string)$code : $model->description;
+    }
+
+    public static function getLimit(): int
+    {
+        return self::$limit ?? self::ALL_LIMIT;
     }
 
     /**
@@ -199,7 +207,7 @@ class CodeModel
      *
      * @return static[]
      */
-    public static function search($tableName, $fieldCode, $fieldDescription, $query, $where = []): array
+    public static function search(string $tableName, string $fieldCode, string $fieldDescription, string $query, array $where = []): array
     {
         // is a table or a model?
         $modelClass = self::MODEL_NAMESPACE . $tableName;
@@ -213,10 +221,15 @@ class CodeModel
         return self::all($tableName, $fieldCode, $fieldDescription, false, $where);
     }
 
+    public static function setLimit(int $newLimit): void
+    {
+        self::$limit = $newLimit;
+    }
+
     /**
      * Inits database connection.
      */
-    protected static function initDataBase()
+    protected static function initDataBase(): void
     {
         if (self::$dataBase === null) {
             self::$dataBase = new DataBase();
