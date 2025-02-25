@@ -16,6 +16,14 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+/* Add by JOSEA */
+input[required]:not(:read-only) {
+    /* danger */
+    background-image: linear-gradient(to bottom, rgba(255,105,97,0.25), rgba(255,105,97,0.15));
+    /* warning */
+    /*    background-image: linear-gradient(to bottom, rgba(253,253,150,0.5), rgba(253,253,150,0.25)); */
+}
+
 /* bootstrap customizations */
 .navbar .dropdown-toggle::after {
     display: none;

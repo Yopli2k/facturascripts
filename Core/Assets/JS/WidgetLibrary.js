@@ -23,7 +23,7 @@ function widgetLibrarySearch(id) {
         action: 'widget-library-search',
         active_tab: input.closest('form').find('input[name="activetab"]').val(),
         col_name: input.attr("name"),
-        widget_id: id,
+        widget_id: id,    /* Add by JOSEA */
         query: $("#modal_" + id + "_q").val(),
         sort: $("#modal_" + id + "_s").val(),
     };
@@ -64,7 +64,7 @@ function widgetLibraryUpload(id, file) {
     data.append('action', 'widget-library-upload');
     data.append('active_tab', input.closest('form').find('input[name="activetab"]').val());
     data.append('col_name', input.attr("name"));
-    data.append('widget_id', id);
+    data.append('widget_id', id);  /* Add by JOSEA */
     data.append('file', file);
 
     $.ajax({
