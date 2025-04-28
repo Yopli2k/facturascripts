@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2025 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2021 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -30,6 +30,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class ExportManager
 {
+
     /**
      * The selected engine/class to export.
      *
@@ -162,7 +163,7 @@ class ExportManager
      * @param string $description
      * @param string $icon
      */
-    public static function addOption($key, $description, $icon): void
+    public static function addOption($key, $description, $icon)
     {
         static::init();
         static::$options[$key] = ['description' => $description, 'icon' => $icon];
@@ -174,7 +175,7 @@ class ExportManager
      * @param string $modelName
      * @param int $priority
      */
-    public static function addOptionModel($exportClassName, $optionKey, $modelName, $priority = 0): void
+    public static function addOptionModel($exportClassName, $optionKey, $modelName, $priority = 0)
     {
         static::init();
         static::$optionsModels[] = [
@@ -193,7 +194,7 @@ class ExportManager
      * @param string $description
      * @param string $icon
      */
-    public static function addTool($key, $link, $description, $icon): void
+    public static function addTool($key, $link, $description, $icon)
     {
         static::init();
         static::$tools[$key] = ['link' => $link, 'description' => $description, 'icon' => $icon];
@@ -270,7 +271,7 @@ class ExportManager
      * @param int $format
      * @param string $lang
      */
-    public function newDoc(string $option, string $title = '', int $format = 0, string $lang = ''): void
+    public function newDoc(string $option, string $title = '', int $format = 0, string $lang = '')
     {
         static::$selectedOption = $option;
         static::$selectedTitle = $title;
@@ -295,19 +296,12 @@ class ExportManager
         return static::$options;
     }
 
-    public function setCompany(int $idempresa): void
-    {
-        if (!empty(static::$engine) && method_exists(static::$engine, 'setCompany')) {
-            static::$engine->setCompany($idempresa);
-        }
-    }
-
     /**
      * Sets default orientation.
      *
      * @param string $orientation
      */
-    public function setOrientation(string $orientation): void
+    public function setOrientation(string $orientation)
     {
         $this->orientation = $orientation;
     }
@@ -317,7 +311,7 @@ class ExportManager
      *
      * @param Response $response
      */
-    public function show(Response &$response): void
+    public function show(Response &$response)
     {
         if (!empty(static::$engine)) {
             static::$engine->show($response);
@@ -353,7 +347,7 @@ class ExportManager
     /**
      * Initialize options array
      */
-    protected static function init(): void
+    protected static function init()
     {
         if (empty(static::$options)) {
             static::$options = [

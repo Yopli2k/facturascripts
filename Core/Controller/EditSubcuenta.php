@@ -24,7 +24,6 @@ use FacturaScripts\Core\Lib\ExtendedController\BaseView;
 use FacturaScripts\Core\Lib\ExtendedController\EditController;
 use FacturaScripts\Core\Tools;
 use FacturaScripts\Dinamic\Lib\Accounting\Ledger;
-use FacturaScripts\Dinamic\Model\CodeModel;
 use FacturaScripts\Dinamic\Model\Cuenta;
 use FacturaScripts\Dinamic\Model\Ejercicio;
 use FacturaScripts\Dinamic\Model\Partida;
@@ -61,9 +60,6 @@ class EditSubcuenta extends EditController
     {
         parent::createViews();
         $this->setTabsPosition('bottom');
-
-        // establecemos el límite de registros a 9999, para el select de cuentas
-        CodeModel::setLimit(9999);
 
         // ocultamos el botón imprimir
         $mvn = $this->getMainViewName();
@@ -156,7 +152,6 @@ class EditSubcuenta extends EditController
         ]);
         $title = Tools::lang()->trans('ledger') . ' ' . $subAccount->codsubcuenta;
         $this->exportManager->newDoc($request['format'], $title);
-        $this->exportManager->setCompany($subAccount->getExercise()->idempresa);
 
         // añadimos la tabla de cabecera con la info del informe
         if ($request['format'] === 'PDF') {

@@ -1,6 +1,6 @@
 /*!
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2025 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2013-2023 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -15,6 +15,29 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+
+/* Add by JOSEA */
+input[required]:not(:read-only),
+textarea[required]:not(:read-only) {
+    /* border rojo claro */
+    /* border-color: #ee6b6b; */
+    /* border naranja warning claro */
+    border-color: #ffcc00;
+    /* danger */
+    /* background-image: linear-gradient(to bottom, rgba(255,105,97,0.25), rgba(255,105,97,0.15)); */
+    /* warning */
+    /*    background-image: linear-gradient(to bottom, rgba(253,253,150,0.5), rgba(253,253,150,0.25)); */
+}
+/*
+.form-control {
+    height: calc(1.5em + .5rem + 2px);
+}
+
+.btn.btn-spin-action {
+    line-height: 1;
+}
+*/
+/* End by JOSEA */
 
 /* bootstrap customizations */
 .navbar .dropdown-toggle::after {
@@ -100,13 +123,7 @@
     width: 100%;
     height: 2px;
 }
+/* end pace customizations */
 .pointer {
     cursor: pointer;
 }
-input[required].form-control:not(:read-only) {
-    background-image: linear-gradient(to bottom, rgba(253,253,150,0.5), rgba(253,253,150,0.25));
-}
-textarea[required].form-control:not(:read-only) {
-    background-image: linear-gradient(to bottom, rgba(253,253,150,0.5), rgba(253,253,150,0.25));
-}
-/* end pace customizations */

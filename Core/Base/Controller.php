@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2025 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2013-2024 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -133,7 +133,7 @@ class Controller implements ControllerInterface
         Session::set('uri', $uri);
 
         $this->dataBase = new DataBase();
-        $this->empresa = Empresas::default();
+        $this->empresa = new Empresa();
         $this->multiRequestProtection = new MultiRequestProtection();
         $this->request = Request::createFromGlobals();
         $this->template = $this->className . '.html.twig';
@@ -145,7 +145,7 @@ class Controller implements ControllerInterface
         AssetManager::clear();
         AssetManager::setAssetsForPage($className);
 
-        $this->checkPhpVersion(8.0);
+        $this->checkPhpVersion(7.4);
     }
 
     /**
@@ -295,34 +295,18 @@ class Controller implements ControllerInterface
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Strict-Transport-Security', 'max-age=31536000');
 
-        // si se ha podido autenticar, ejecutamos la parte privada del controlador
+        // ejecutamos la parte privada o pública del controlador
         if ($this->auth()) {
             $permissions = new ControllerPermissions(Session::user(), $this->className);
             $this->privateCore($response, Session::user(), $permissions);
-
-            // renderizamos la plantilla
-            if ($this->template) {
-                // carga el menú
-                $menu = new MenuManager();
-                $menu->setUser(Session::user());
-                $menu->selectPage($this->getPageData());
-
-                Kernel::startTimer('Controller::html-render');
-                $response->setContent(Html::render($this->template, [
-                    'controllerName' => $this->className,
-                    'fsc' => $this,
-                    'menuManager' => $menu,
-                    'template' => $this->template,
-                ]));
-                Kernel::stopTimer('Controller::html-render');
-            }
-
-            $response->send();
-            return;
+        } else {
+            $this->publicCore($response);
         }
 
-        // si no se ha podido autenticar, ejecutamos la parte pública
-        $this->publicCore($response);
+        // carga el menú
+        $menu = new MenuManager();
+        $menu->setUser(Session::user());
+        $menu->selectPage($this->getPageData());
 
         // renderizamos la plantilla
         if ($this->template) {
@@ -330,11 +314,11 @@ class Controller implements ControllerInterface
             $response->setContent(Html::render($this->template, [
                 'controllerName' => $this->className,
                 'fsc' => $this,
+                'menuManager' => $menu,
                 'template' => $this->template,
             ]));
             Kernel::stopTimer('Controller::html-render');
         }
-
         $response->send();
     }
 

@@ -25,6 +25,7 @@ use FacturaScripts\Core\Base\ToolBox;
 use FacturaScripts\Core\DbQuery;
 use FacturaScripts\Core\DbUpdater;
 use FacturaScripts\Core\Lib\Import\CSVImport;
+use FacturaScripts\Core\Session;
 
 /**
  * The class from which all models inherit, connects to the database,
@@ -132,11 +133,14 @@ abstract class ModelCore
             throw new Exception('The table name is not defined in the model ' . $this->modelClassName());
         }
 
-        if (false === DbUpdater::isTableChecked(static::tableName())) {
-            if (self::$dataBase->tableExists(static::tableName())) {
-                DbUpdater::updateTable(static::tableName());
-            } else {
-                DbUpdater::createTable(static::tableName(), [], $this->install());
+        $user = Session::get('user');
+        if (false === empty($user) && $user->admin) {
+            if (false === DbUpdater::isTableChecked(static::tableName())) {
+                if (self::$dataBase->tableExists(static::tableName())) {
+                    DbUpdater::updateTable(static::tableName());
+                } else {
+                    DbUpdater::createTable(static::tableName(), [], $this->install());
+                }
             }
         }
 
