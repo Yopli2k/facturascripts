@@ -112,6 +112,10 @@ class ColumnItem extends VisualItem
         $colAuto = $this->widget->getType() === 'checkbox' ? 'col-sm-auto' : 'col-sm';
 
         $divClass = $this->numcolumns > 0 ? $this->css('col-md-') . $this->numcolumns : $this->css($colAuto);
+        if (false === empty($this->class)) {
+            $divClass .= ' ' . $this->class;
+        }
+
         $divID = empty($this->id) ? '' : ' id="' . $this->id . '"';
         $editHtml = $onlyField ? $this->widget->edit($model) : $this->widget->edit($model, $this->title, $this->description, $this->titleurl);
         return '<div' . $divID . ' class="' . $divClass . '">'
