@@ -205,7 +205,6 @@ class DocumentStitcher extends Controller
         }
 
         if ($full) {
-            $this->updateServedStatus($doc, true); /* Add by JOSEA */
             $doc->setDocumentGeneration(false);
             $doc->idestado = $idestado;
             if (false === $doc->save()) {
@@ -213,19 +212,11 @@ class DocumentStitcher extends Controller
                 Tools::log()->error('record-save-error');
                 return;
             }
-        } elseif ($this->updateServedStatus($doc, false)) { /* Add by JOSEA */
-            $doc->setDocumentGeneration(false);               /* Add by JOSEA */
-            $doc->save();                                            /* Add by JOSEA */
         }
 
         // we get the lines again in case they have been updated
         foreach ($doc->getLines() as $line) {
-            $quantity = $quantities[$line->primaryColumnValue()]; /* Add by JOSEA */
-            if (empty($quantity)) {                               /* Add by JOSEA */
-                continue;                                         /* Add by JOSEA */
-            }
-
-            $line->servido += $quantity;                          /* Add by JOSEA */
+            $line->servido += $quantities[$line->primaryColumnValue()];
             if (false === $line->save()) {
                 $this->dataBase->rollback();
                 Tools::log()->error('record-save-error');
@@ -433,22 +424,5 @@ class DocumentStitcher extends Controller
                 $this->moreDocuments[] = $doc;
             }
         }
-    }
-
-    /**
-     * Update the servido field of the document.
-     * Add by JOSEA (for PedidosPendientes Plugin)
-     * @param TransformerDocument $doc
-     * @param bool $full
-     * @return bool
-     */
-    protected function updateServedStatus(&$doc, bool $full): bool
-    {
-        if (isset($doc->servido)) {
-            $served = $full || (bool)$this->request->request->get('served_' . $doc->primaryColumnValue(), false);
-            $doc->servido = $served ? 100 : 1;
-            return true;
-        }
-        return false;
     }
 }
