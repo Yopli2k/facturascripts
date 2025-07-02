@@ -230,11 +230,12 @@ final class DbUpdater
                 $sql .= self::sqlTool()->sqlAlterModifyColumn($tableName, $xmlCol);
             }
 
-            if ($column['default'] === null && $xmlCol['default'] !== '') {
+            if ($column['default'] === null && $xmlCol['default'] !== null && $xmlCol['default'] !== '') {
                 $sql .= self::sqlTool()->sqlAlterColumnDefault($tableName, $xmlCol);
             }
 
             if ($column['is_nullable'] !== $xmlCol['null']) {
+                Tools::log('database')->error('Modificando columna: ' . $xmlCol['name'] . ' de la tabla ' . $tableName . ' para que sea ' . $xmlCol['null'] . ' en vez de ' . $column['is_nullable']);
                 $sql .= self::sqlTool()->sqlAlterColumnNull($tableName, $xmlCol);
             }
         }
