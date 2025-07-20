@@ -138,13 +138,13 @@ class SubAccountTools
     {
         switch ($group) {
             case self::SPECIAL_GROUP_TAX_ALL:
-                return ['IVASEX', 'IVASIM', 'IVASOP', 'IVASUE', 'IVAREX', 'IVAREP', 'IVARUE', 'IVARRE'];
+                return ['IVASEX', 'IVASIM', 'IVASOP', 'IVASUE', 'IVAREX', 'IVAREP', 'IVARUE', 'IVARRE', 'IVARXP'];
 
             case self::SPECIAL_GROUP_TAX_INPUT:
                 return ['IVASEX', 'IVASIM', 'IVASOP', 'IVASUE'];
 
             case self::SPECIAL_GROUP_TAX_OUTPUT:
-                return ['IVAREX', 'IVAREP', 'IVARUE', 'IVARRE'];
+                return ['IVAREX', 'IVAREP', 'IVARUE', 'IVARRE', 'IVARXP'];
         }
 
         return [];

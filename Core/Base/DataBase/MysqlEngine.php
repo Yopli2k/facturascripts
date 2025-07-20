@@ -142,7 +142,7 @@ class MysqlEngine extends DataBaseEngine
     {
         if (parent::compareDataTypes($dbType, $xmlType)) {
             return true;
-        } elseif ($dbType == 'tinyint(1)' && $xmlType == 'boolean') {
+        } elseif ($dbType == 'tinyint(1)' && ($xmlType == 'boolean' || $xmlType == 'bool')) {
             return true;
         } elseif (substr($dbType, 0, 3) == 'int' && strtolower($xmlType) == 'integer') {
             return true;

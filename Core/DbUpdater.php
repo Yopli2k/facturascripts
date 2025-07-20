@@ -222,20 +222,23 @@ final class DbUpdater
         foreach ($xmlCols as $xmlCol) {
             $column = self::searchInArray($dbCols, 'name', $xmlCol['name']);
             if (empty($column)) {
+                Tools::log('database')->warning('Actualizando columna: ' . $xmlCol['name']);
                 $sql .= self::sqlTool()->sqlAlterAddColumn($tableName, $xmlCol);
                 continue;
             }
 
             if (false === self::compareDataTypes($column['type'], $xmlCol['type'])) {
+                Tools::log('database')->warning('Actualizando ' . $column['name'] . '  Type: de ' . $column['type'] . ' a ' . $xmlCol['type']);
                 $sql .= self::sqlTool()->sqlAlterModifyColumn($tableName, $xmlCol);
             }
 
             if ($column['default'] === null && $xmlCol['default'] !== null && $xmlCol['default'] !== '') {
+                Tools::log('database')->warning('Actualizando ' . $column['name'] . ' Default: de ' . $column['default'] . ' a ' . $xmlCol['default']);
                 $sql .= self::sqlTool()->sqlAlterColumnDefault($tableName, $xmlCol);
             }
 
             if ($column['is_nullable'] !== $xmlCol['null']) {
-                Tools::log('database')->error('Modificando columna: ' . $xmlCol['name'] . ' de la tabla ' . $tableName . ' para que sea ' . $xmlCol['null'] . ' en vez de ' . $column['is_nullable']);
+                Tools::log('database')->error('Modificando NULL: ' . $xmlCol['name'] . ' de la tabla ' . $tableName . ' para que sea ' . $xmlCol['null'] . ' en vez de ' . $column['is_nullable']);
                 $sql .= self::sqlTool()->sqlAlterColumnNull($tableName, $xmlCol);
             }
         }
