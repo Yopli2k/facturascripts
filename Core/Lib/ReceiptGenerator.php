@@ -283,16 +283,18 @@ class ReceiptGenerator
 
         // calculate outstanding amount
         $amount = $this->getOutstandingAmount($receipts, $invoice->total);
-        if (empty($amount)) {
-            return true;
-        }
 
         // calculate new receipt number
         $newNum = 1;
         foreach ($receipts as $receipt) {
+            if (empty($amount) && $receipt->coddivisa === $invoice->coddivisa) {
+                continue;
+            }
+
             // try to update open receipts
             if ($receipt->pagado === false) {
                 $receipt->importe += $amount;
+                $receipt->coddivisa = $invoice->coddivisa;
                 return $receipt->save();
             }
 
@@ -317,16 +319,18 @@ class ReceiptGenerator
 
         // calculate outstanding amount
         $amount = $this->getOutstandingAmount($receipts, $invoice->total);
-        if (empty($amount)) {
-            return true;
-        }
 
         // calculate new receipt number
         $newNum = 1;
         foreach ($receipts as $receipt) {
+            if (empty($amount) && $receipt->coddivisa === $invoice->coddivisa) {
+                continue;
+            }
+
             // try to update open receipts
             if ($receipt->pagado === false) {
                 $receipt->importe += $amount;
+                $receipt->coddivisa = $invoice->coddivisa;
                 return $receipt->save();
             }
 
