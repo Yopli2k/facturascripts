@@ -39,7 +39,7 @@ use FacturaScripts\Dinamic\Model\SecuenciaDocumento;
 use FacturaScripts\Dinamic\Model\User;
 
 /**
- * Controlador del asistente de configuración inicial de la aplicación.
+ * Description of Wizard
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */

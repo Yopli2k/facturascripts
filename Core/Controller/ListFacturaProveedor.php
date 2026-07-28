@@ -28,7 +28,7 @@ use FacturaScripts\Core\Where;
 use FacturaScripts\Dinamic\Lib\ExtendedController\ListBusinessDocument;
 
 /**
- * Controlador para listar los elementos del modelo FacturaProveedor
+ * Controller to list the items in the FacturaProveedor model
  *
  * @author Carlos García Gómez           <carlos@facturascripts.com>
  * @author Jose Antonio Cuello Principal <yopli2000@gmail.com>
@@ -93,7 +93,7 @@ class ListFacturaProveedor extends ListBusinessDocument
         $this->addButtonGenerateAccountingInvoices($viewName, null, 'invoice-actions');
 
         if ($this->user->admin) {
-            $this->tab($viewName)->addButton([
+            $this->addButton($viewName, [
                 'action' => 'renumber-invoices',
                 'icon' => 'fa-solid fa-sort-numeric-down',
                 'label' => 'renumber',
@@ -115,7 +115,7 @@ class ListFacturaProveedor extends ListBusinessDocument
             ->setSettings('btnNew', false);
 
         // filtros
-        if (Empresas::count() > 1) {
+        if (count(Empresas::all()) > 1) {
             $this->addFilterSelect($viewName, 'idempresa', 'company', 'idempresa', Empresas::codeModel());
         }
 

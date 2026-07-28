@@ -23,6 +23,7 @@ use FacturaScripts\Core\Lib\Calculator;
 use FacturaScripts\Core\Model\Base\InvoiceTrait;
 use FacturaScripts\Core\Model\Base\PurchaseDocument;
 use FacturaScripts\Core\Template\ModelTrait;
+use FacturaScripts\Core\Where;
 use FacturaScripts\Dinamic\Model\LineaFacturaProveedor as LineaFactura;
 use FacturaScripts\Dinamic\Model\ReciboProveedor as DinReciboProveedor;
 
@@ -57,8 +58,9 @@ class FacturaProveedor extends PurchaseDocument
      */
     public function getLines(): array
     {
+        $where = [Where::eq('idfactura', $this->idfactura)];
         $order = ['orden' => 'DESC', 'idlinea' => 'ASC'];
-        return LineaFactura::allWhereEq('idfactura', $this->idfactura, $order);
+        return LineaFactura::all($where, $order, 0, 0);
     }
 
     /**
@@ -122,11 +124,8 @@ class FacturaProveedor extends PurchaseDocument
      */
     public function getReceipts(): array
     {
-        return DinReciboProveedor::allWhereEq(
-            'idfactura',
-            $this->idfactura,
-            ['numero' => 'ASC', 'idrecibo' => 'ASC']
-        );
+        $where = [Where::eq('idfactura', $this->idfactura)];
+        return DinReciboProveedor::all($where, ['numero' => 'ASC', 'idrecibo' => 'ASC'], 0, 0);
     }
 
     public static function tableName(): string

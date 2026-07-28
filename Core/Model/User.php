@@ -26,6 +26,7 @@ use FacturaScripts\Core\Model\Base\GravatarTrait;
 use FacturaScripts\Core\Template\ModelClass;
 use FacturaScripts\Core\Template\ModelTrait;
 use FacturaScripts\Core\Tools;
+use FacturaScripts\Core\Where;
 use FacturaScripts\Dinamic\Model\Agente as DinAgente;
 use FacturaScripts\Dinamic\Model\Empresa as DinEmpresa;
 use FacturaScripts\Dinamic\Model\Page as DinPage;
@@ -49,64 +50,64 @@ class User extends ModelClass
     const DEFAULT_LEVEL = 2;
     const UPDATE_ACTIVITY_PERIOD = 3600;
 
-    /** @var bool Indica si el usuario tiene permisos de administrador. */
+    /** @var bool */
     public $admin;
 
-    /** @var string Código del agente comercial asociado al usuario. */
+    /** @var string */
     public $codagente;
 
-    /** @var string|null Código del almacén predeterminado del usuario. */
+    /** @var string|null */
     public $codalmacen;
 
-    /** @var string Código de la serie predeterminada del usuario. */
+    /** @var string */
     public $codserie;
 
-    /** @var string Fecha de creación de la cuenta de usuario. */
+    /** @var string */
     public $creationdate;
 
-    /** @var string Dirección de correo electrónico del usuario. */
+    /** @var string */
     public $email;
 
-    /** @var bool Indica si la cuenta de usuario está activa. */
+    /** @var bool */
     public $enabled;
 
-    /** @var string Página de inicio predeterminada del usuario. */
+    /** @var string */
     public $homepage;
 
-    /** @var string Código del idioma seleccionado por el usuario. */
+    /** @var string */
     public $langcode;
 
-    /** @var string Fecha y hora de la última actividad del usuario. */
+    /** @var string */
     public $lastactivity;
 
-    /** @var string Navegador utilizado en la última actividad del usuario. */
+    /** @var string */
     public $lastbrowser;
 
-    /** @var string Dirección IP de la última actividad del usuario. */
+    /** @var string */
     public $lastip;
 
-    /** @var integer Nivel de permisos del usuario. */
+    /** @var integer */
     public $level;
 
-    /** @var string Clave para mantener la sesión iniciada. */
+    /** @var string */
     public $logkey;
 
-    /** @var string Nombre de usuario utilizado para iniciar sesión. */
+    /** @var string */
     public $nick;
 
-    /** @var string Nueva contraseña introducida por el usuario. */
+    /** @var string */
     public $newPassword;
 
-    /** @var string Confirmación de la nueva contraseña. */
+    /** @var string */
     public $newPassword2;
 
-    /** @var string Contraseña cifrada del usuario. */
+    /** @var string */
     public $password;
 
-    /** @var bool Indica si el usuario tiene activada la autenticación en dos pasos. */
+    /** @var bool */
     public $two_factor_enabled;
 
-    /** @var string Clave secreta para la autenticación en dos pasos. */
+    /** @var string */
     public $two_factor_secret_key;
 
     public function addRole(?string $code): bool
@@ -268,7 +269,8 @@ class User extends ModelClass
     {
         $roles = [];
 
-        foreach (DinRoleUser::allWhereEq('nick', $this->nick) as $role) {
+        $where = [Where::eq('nick', $this->nick)];
+        foreach (DinRoleUser::all($where, [], 0, 0) as $role) {
             $roles[] = $role->getRole();
         }
 
@@ -375,7 +377,7 @@ class User extends ModelClass
     public function setPassword($value): bool
     {
         // si la contraseña tiene menos de 8 caracteres, o no tiene números o no tiene letras, devolvemos false
-        if (mb_strlen($value) < 8 || !preg_match('/[0-9]/', $value) || !preg_match('/[a-zA-Z]/', $value)) {
+        if (strlen($value) < 8 || !preg_match('/[0-9]/', $value) || !preg_match('/[a-zA-Z]/', $value)) {
             return false;
         }
 

@@ -36,7 +36,7 @@ use FacturaScripts\Dinamic\Model\Proveedor;
 use FacturaScripts\Dinamic\Model\User;
 
 /**
- * Controlador para copiar un registro existente y crear uno nuevo a partir de sus datos.
+ * Description of CopyModel
  *
  * @author Carlos Garcia Gomez <carlos@facturascripts.com>
  */

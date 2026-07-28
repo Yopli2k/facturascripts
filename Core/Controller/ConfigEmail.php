@@ -28,7 +28,7 @@ use FacturaScripts\Dinamic\Lib\Email\NewMail;
 use FacturaScripts\Dinamic\Model\EmailNotification;
 
 /**
- * Controlador para editar la configuración del correo electrónico.
+ * Controller to edit main settings
  *
  * @author Daniel Fernández Giménez  <contacto@danielfg.es>
  * @author Carlos Garcia Gomez       <carlos@facturascripts.com>
@@ -70,14 +70,14 @@ class ConfigEmail extends PanelController
             ->setSettings('btnNew', false);
 
         // añadimos los botones de activar y desactivar
-        $this->tab($viewName)->addButton([
+        $this->addButton($viewName, [
             'action' => 'enable-notification',
             'color' => 'success',
             'icon' => 'fa-solid fa-check-square',
             'label' => 'enable'
         ]);
 
-        $this->tab($viewName)->addButton([
+        $this->addButton($viewName, [
             'action' => 'disable-notification',
             'color' => 'warning',
             'icon' => 'fa-regular fa-square',
@@ -104,7 +104,7 @@ class ConfigEmail extends PanelController
             ->addFilterCheckbox('attachment', 'has-attachments');
 
         // añadimos un botón para el modal delete-multi
-        $this->tab($viewName)->addButton([
+        $this->addButton($viewName, [
             'action' => 'delete-multi',
             'color' => 'warning',
             'icon' => 'fa-solid fa-trash-alt',
@@ -253,7 +253,7 @@ class ConfigEmail extends PanelController
                 $this->loadMailerValues($viewName);
                 if ($view->model->mailer === 'smtp' || $view->model->mailer === 'SMTP') {
                     // añadimos el botón test
-                    $view->addButton([
+                    $this->addButton($viewName, [
                         'action' => 'testmail',
                         'color' => 'info',
                         'icon' => 'fa-solid fa-envelope',

@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2013-2026 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2013-2025 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -24,6 +24,7 @@ use FacturaScripts\Core\Model\Cliente as CoreCliente;
 use FacturaScripts\Core\Model\Contacto as CoreContacto;
 use FacturaScripts\Core\Model\User;
 use FacturaScripts\Core\Tools;
+use FacturaScripts\Core\Where;
 use FacturaScripts\Dinamic\Lib\CustomerRiskTools;
 use FacturaScripts\Dinamic\Model\AgenciaTransporte;
 use FacturaScripts\Dinamic\Model\Agente;
@@ -56,14 +57,14 @@ abstract class SalesDocument extends TransformerDocument
     public $ciudad;
 
     /**
-     * Código del agente comercial asociado al documento.
+     * Agente que creó este documento. Modelo Agente.
      *
      * @var string
      */
     public $codagente;
 
     /**
-     * Código del cliente asociado al documento.
+     * Cliente de este documento.
      *
      * @var string
      */
@@ -77,7 +78,7 @@ abstract class SalesDocument extends TransformerDocument
     public $codigoenv;
 
     /**
-     * Código del país del cliente.
+     * País del cliente.
      *
      * @var string
      */
@@ -91,7 +92,7 @@ abstract class SalesDocument extends TransformerDocument
     public $codpostal;
 
     /**
-     * Código de la agencia de transporte del envío.
+     * Código de transporte del envío.
      *
      * @var string
      */
@@ -105,14 +106,14 @@ abstract class SalesDocument extends TransformerDocument
     public $direccion;
 
     /**
-     * Identificador del contacto de envío.
+     * ID del contacto de envío.
      *
      * @var int
      */
     public $idcontactoenv;
 
     /**
-     * Identificador del contacto de facturación.
+     * ID del contacto de facturación.
      *
      * @var int
      */
@@ -218,10 +219,9 @@ abstract class SalesDocument extends TransformerDocument
         }
 
         $variant = new Variante();
-        if (
-            $variant->loadWhereEq('referencia', Tools::noHtml($reference))
-            || $variant->loadWhereEq('codbarras', Tools::noHtml($reference))
-        ) {
+        $where1 = [Where::eq('referencia', Tools::noHtml($reference))];
+        $where2 = [Where::eq('codbarras', Tools::noHtml($reference))];
+        if ($variant->loadWhere($where1) || $variant->loadWhere($where2)) {
             $product = $variant->getProducto();
 
             $newLine->codimpuesto = $product->getTax()->codimpuesto;

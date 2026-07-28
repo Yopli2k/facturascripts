@@ -28,7 +28,7 @@ use FacturaScripts\Dinamic\Model\Agente;
 use FacturaScripts\Dinamic\Model\TotalModel;
 
 /**
- * Controlador para editar un único elemento del modelo Agente
+ * Controller to edit a single item from the Agente model
  *
  * @author Carlos Garcia Gomez            <carlos@facturascripts.com>
  * @author Jose Antonio Cuello Principal  <yopli2000@gmail.com>
@@ -44,7 +44,7 @@ class EditAgente extends ComercialContactController
     public function calcAgentInvoicePending(): string
     {
         $where = [
-            Where::eq('codagente', $this->mainTabModelValue('codagente')),
+            Where::eq('codagente', $this->getViewModelValue($this->getMainViewName(), 'codagente')),
             Where::eq('pagada', false)
         ];
 
@@ -157,10 +157,11 @@ class EditAgente extends ComercialContactController
         if ($return && $this->active == 'EditContacto') {
             // update agent data when contact data is updated
             $agente = new Agente();
-            if ($agente->loadWhereEq('idcontacto', $this->activeTab()->model->idcontacto)) {
-                $agente->email = $this->activeTab()->model->email;
-                $agente->telefono1 = $this->activeTab()->model->telefono1;
-                $agente->telefono2 = $this->activeTab()->model->telefono2;
+            $where = [Where::eq('idcontacto', $this->views[$this->active]->model->idcontacto)];
+            if ($agente->load('', $where)) {
+                $agente->email = $this->views[$this->active]->model->email;
+                $agente->telefono1 = $this->views[$this->active]->model->telefono1;
+                $agente->telefono2 = $this->views[$this->active]->model->telefono2;
                 $agente->save();
             }
         }
@@ -176,11 +177,11 @@ class EditAgente extends ComercialContactController
      */
     protected function loadData($viewName, $view)
     {
-        $mvn = $this->mainTabName();
+        $mvn = $this->getMainViewName();
 
         switch ($viewName) {
             case 'EditContacto':
-                $idcontacto = $this->mainTabModelValue('idcontacto');
+                $idcontacto = $this->getViewModelValue($mvn, 'idcontacto');
                 if (empty($idcontacto)) {
                     $view->setSettings('active', false);
                     break;
@@ -195,13 +196,13 @@ class EditAgente extends ComercialContactController
             case 'ListFacturaCliente':
             case 'ListPedidoCliente':
             case 'ListPresupuestoCliente':
-                $codagente = $this->mainTabModelValue('codagente');
+                $codagente = $this->getViewModelValue($mvn, 'codagente');
                 $where = [Where::eq('codagente', $codagente)];
                 $view->loadData('', $where);
                 break;
 
             case 'ListEmailSent':
-                $email = $this->mainTabModelValue('email');
+                $email = $this->getViewModelValue($mvn, 'email');
                 if (empty($email)) {
                     $view->setSettings('active', false);
                     break;
@@ -212,7 +213,7 @@ class EditAgente extends ComercialContactController
 
                 // añadimos un botón para enviar un nuevo email
                 $view->addButton([
-                    'action' => 'SendMail?email-to=' . $email,
+                    'action' => 'SendMail?email=' . $email,
                     'color' => 'success',
                     'icon' => 'fa-solid fa-envelope',
                     'label' => 'send',
@@ -234,7 +235,7 @@ class EditAgente extends ComercialContactController
      */
     protected function loadLanguageValues(string $viewName): void
     {
-        $columnLangCode = $this->tab($viewName)->columnForName('language');
+        $columnLangCode = $this->views[$viewName]->columnForName('language');
         if ($columnLangCode && $columnLangCode->widget->getType() === 'select') {
             $langs = [];
             foreach (Tools::lang()->getAvailableLanguages() as $key => $value) {
@@ -247,5 +248,6 @@ class EditAgente extends ComercialContactController
 
     protected function setCustomWidgetValues(string $viewName): void
     {
+        ;
     }
 }

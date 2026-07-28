@@ -24,7 +24,9 @@ use FacturaScripts\Dinamic\Model\Serie;
 
 trait SerieRelationTrait
 {
-    /** @var string Código de la serie asociada. */
+    /**
+     * @var string
+     */
     public $codserie;
 
     public function getSerie(): Serie

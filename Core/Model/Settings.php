@@ -33,10 +33,18 @@ class Settings extends ModelClass
 {
     use ModelTrait;
 
-    /** @var string Nombre identificativo del grupo de configuración. */
+    /**
+     * Identifier of the group of values.
+     *
+     * @var string
+     */
     public $name;
 
-    /** @var string Conjunto de valores de configuración codificado en formato JSON. */
+    /**
+     * Set of configuration values
+     *
+     * @var string
+     */
     protected $properties;
 
     public function __get(string $key)

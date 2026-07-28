@@ -397,7 +397,7 @@ abstract class ListController extends BaseController
     protected function exportAction()
     {
         if (
-            false === $this->activeTab()->settings['btnPrint'] ||
+            false === $this->views[$this->active]->settings['btnPrint'] ||
             false === $this->permissions->allowExport
         ) {
             Tools::log()->warning('no-print-permission');
@@ -409,7 +409,7 @@ abstract class ListController extends BaseController
         $codes = $this->request->request->getArray('codes');
         $option = $this->request->queryOrInput('option', '');
         $this->exportManager->newDoc($option);
-        $this->activeTab()->export($this->exportManager, $codes);
+        $this->views[$this->active]->export($this->exportManager, $codes);
         $this->exportManager->show($this->response);
     }
 

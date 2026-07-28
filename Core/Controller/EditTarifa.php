@@ -27,7 +27,7 @@ use FacturaScripts\Dinamic\Model\Cliente;
 use FacturaScripts\Dinamic\Model\GrupoClientes;
 
 /**
- * Controlador para editar un único elemento del modelo Tarifa
+ * Controller to edit a single item from the Tarifa model
  *
  * @author Carlos García Gómez           <carlos@facturascripts.com>
  * @author Jose Antonio Cuello Principal <yopli2000@gmail.com>
@@ -64,14 +64,14 @@ class EditTarifa extends EditController
             ->setSettings('btnNew', false);
 
         // add custom buttons
-        $this->tab($viewName)->addButton([
+        $this->addButton($viewName, [
             'action' => 'setgrouprate',
             'color' => 'success',
             'icon' => 'fa-solid fa-folder-plus',
             'label' => 'add',
             'type' => 'modal'
         ]);
-        $this->tab($viewName)->addButton([
+        $this->addButton($viewName, [
             'action' => 'unsetgrouprate',
             'color' => 'danger',
             'confirm' => true,
@@ -90,14 +90,14 @@ class EditTarifa extends EditController
             ->setSettings('btnDelete', false)
             ->setSettings('btnNew', false);
 
-        $this->tab($viewName)->addButton([
+        $this->addButton($viewName, [
             'action' => 'setcustomerrate',
             'color' => 'success',
             'icon' => 'fa-solid fa-folder-plus',
             'label' => 'add',
             'type' => 'modal'
         ]);
-        $this->tab($viewName)->addButton([
+        $this->addButton($viewName, [
             'action' => 'unsetcustomerrate',
             'color' => 'danger',
             'confirm' => true,
@@ -143,7 +143,7 @@ class EditTarifa extends EditController
             case 'ListCliente':
             case 'ListGrupoClientes':
             case 'ListTarifaProducto':
-                $codtarifa = $this->mainTabModelValue('codtarifa');
+                $codtarifa = $this->getViewModelValue($this->getMainViewName(), 'codtarifa');
                 $where = [Where::eq('codtarifa', $codtarifa)];
                 $view->loadData('', $where);
                 break;

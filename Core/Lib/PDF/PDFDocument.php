@@ -870,7 +870,8 @@ abstract class PDFDocument extends PDFCore
                 $text = $qrTitle;
                 $currentLine = '';
 
-                foreach (mb_str_split($text) as $char) {
+                for ($i = 0; $i < strlen($text); $i++) {
+                    $char = $text[$i];
                     $testLine = $currentLine . $char;
                     $testWidth = $this->pdf->getTextWidth(self::FONT_SIZE, $testLine);
 
@@ -906,7 +907,8 @@ abstract class PDFDocument extends PDFCore
                         } else {
                             // La palabra sola es demasiado larga, dividir por caracteres
                             $currentLine = '';
-                            foreach (mb_str_split($word) as $char) {
+                            for ($i = 0; $i < strlen($word); $i++) {
+                                $char = $word[$i];
                                 $testLine = $currentLine . $char;
                                 $testWidth = $this->pdf->getTextWidth(self::FONT_SIZE, $testLine);
 

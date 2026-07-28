@@ -8,7 +8,7 @@ namespace FacturaScripts\Core\Controller;
 use FacturaScripts\Dinamic\Lib\AjaxForms\PurchasesController;
 
 /**
- * Controlador para editar un único elemento del modelo PedidoProveedor
+ * Description of EditPedidoProveedor
  *
  * @author Carlos Garcia Gomez           <carlos@facturascripts.com>
  * @author Jose Antonio Cuello Principal <yopli2000@gmail.com>

@@ -33,7 +33,11 @@ class LineaPedidoProveedor extends BusinessDocumentLine
 {
     use ModelTrait;
 
-    /** @var int Identificador del pedido de proveedor al que pertenece la línea. */
+    /**
+     * Order ID.
+     *
+     * @var int
+     */
     public $idpedido;
 
     public function documentColumn(): string

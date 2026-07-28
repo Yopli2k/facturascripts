@@ -30,7 +30,7 @@ use FacturaScripts\Core\Tools;
 trait IntracomunitariaTrait
 {
     /**
-     * Tipo de operación fiscal del documento, por ejemplo intracomunitaria.
+     * Indicates the type of document operation, example: intra-community
      *
      * @var string
      */

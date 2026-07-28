@@ -24,7 +24,7 @@ use FacturaScripts\Core\Lib\ExtendedController\EditController;
 use FacturaScripts\Core\Where;
 
 /**
- * Controlador para editar un único elemento del modelo CronJob
+ * Description of EditCronJob
  *
  * @author Raul Jimenez         <raljopa@gmail.com>
  * @author Carlos García Gómez  <carlos@facturascripts.com>
@@ -50,7 +50,7 @@ class EditCronJob extends EditController
         parent::createViews();
 
         // desactivamos los botones nuevo y opciones
-        $mvn = $this->mainTabName();
+        $mvn = $this->getMainViewName();
         $this->setSettings($mvn, 'btnNew', false);
         $this->setSettings($mvn, 'btnOptions', false);
 
@@ -63,11 +63,12 @@ class EditCronJob extends EditController
 
     protected function createViewsLogs(string $viewName = 'ListLogMessage')
     {
-        $this->addListView($viewName, 'LogMessage', 'related', 'fa-solid fa-file-medical-alt')
-            ->addSearchFields(['ip', 'message', 'uri'])
-            ->addOrderBy(['time', 'id'], 'date', 2)
-            // desactivamos el botón nuevo
-            ->setSettings('btnNew', false);
+        $this->addListView($viewName, 'LogMessage', 'related', 'fa-solid fa-file-medical-alt');
+        $this->views[$viewName]->addSearchFields(['ip', 'message', 'uri']);
+        $this->views[$viewName]->addOrderBy(['time', 'id'], 'date', 2);
+
+        // desactivamos el botón nuevo
+        $this->setSettings($viewName, 'btnNew', false);
     }
 
     /**
@@ -78,7 +79,7 @@ class EditCronJob extends EditController
     {
         switch ($viewName) {
             case 'ListLogMessage':
-                $name = $this->mainTabModelValue('jobname');
+                $name = $this->getViewModelValue($this->getMainViewName(), 'jobname');
                 $where = [Where::eq('channel', $name)];
                 $view->loadData('', $where);
                 break;

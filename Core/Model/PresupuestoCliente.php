@@ -24,6 +24,7 @@ use FacturaScripts\Core\Lib\Calculator;
 use FacturaScripts\Core\Model\Base\SalesDocument;
 use FacturaScripts\Core\Template\ModelTrait;
 use FacturaScripts\Core\Tools;
+use FacturaScripts\Core\Where;
 use FacturaScripts\Dinamic\Model\LineaPresupuestoCliente as LineaPresupuesto;
 
 /**
@@ -35,10 +36,18 @@ class PresupuestoCliente extends SalesDocument
 {
     use ModelTrait;
 
-    /** @var string Fecha hasta la que se mantiene la validez del presupuesto. */
+    /**
+     * Date on which the validity of the estimation ends.
+     *
+     * @var string
+     */
     public $finoferta;
 
-    /** @var integer Identificador único del presupuesto de cliente. */
+    /**
+     * Primary key.
+     *
+     * @var integer
+     */
     public $idpresupuesto;
 
     public function clear(): void
@@ -59,8 +68,9 @@ class PresupuestoCliente extends SalesDocument
      */
     public function getLines(): array
     {
+        $where = [Where::eq('idpresupuesto', $this->idpresupuesto)];
         $orderBy = ['orden' => 'DESC', 'idlinea' => 'ASC'];
-        return LineaPresupuesto::allWhereEq('idpresupuesto', $this->idpresupuesto, $orderBy);
+        return LineaPresupuesto::all($where, $orderBy, 0, 0);
     }
 
     /**

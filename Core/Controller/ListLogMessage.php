@@ -25,7 +25,7 @@ use FacturaScripts\Dinamic\Model\CronJob;
 use FacturaScripts\Dinamic\Model\LogMessage;
 
 /**
- * Controlador para listar los elementos del modelo LogMessage
+ * Controller to list the items in the LogMessage model
  *
  * @author Carlos García Gómez          <carlos@facturascripts.com>
  * @author Francesc Pineda Segarra      <francesc.pineda.segarra@gmail.com>
@@ -70,14 +70,14 @@ class ListLogMessage extends ListController
             ]);
 
         // añadimos los botones de activar y desactivar
-        $this->tab($viewName)->addButton([
+        $this->addButton($viewName, [
             'action' => 'enable-cronjob',
             'color' => 'success',
             'icon' => 'fa-solid fa-check-square',
             'label' => 'enable'
         ]);
 
-        $this->tab($viewName)->addButton([
+        $this->addButton($viewName, [
             'action' => 'disable-cronjob',
             'color' => 'warning',
             'icon' => 'fa-regular fa-square',
@@ -107,7 +107,7 @@ class ListLogMessage extends ListController
             ->addFilterPeriod('time', 'period', 'time', true);
 
         // añadimos un botón para el modal delete-logs
-        $this->tab($viewName)->addButton([
+        $this->addButton($viewName, [
             'action' => 'delete-logs',
             'color' => 'warning',
             'icon' => 'fa-solid fa-trash-alt',

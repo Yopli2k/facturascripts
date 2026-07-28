@@ -26,7 +26,7 @@ use FacturaScripts\Dinamic\Lib\ExtendedController\ListBusinessDocument;
 use FacturaScripts\Dinamic\Model\PresupuestoCliente;
 
 /**
- * Controlador para listar los elementos del modelo PresupuestoCliente
+ * Controller to list the items in the PresupuestoCliente model
  *
  * @author Carlos García Gómez          <carlos@facturascripts.com>
  * @author Raul Jimenez                 <raul.jimenez@nazcanetworks.com>

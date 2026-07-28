@@ -16,7 +16,7 @@ use FacturaScripts\Dinamic\Model\FacturaProveedor;
 use FacturaScripts\Dinamic\Model\ReciboProveedor;
 
 /**
- * Controlador para editar un único elemento del modelo FacturaProveedor
+ * Description of EditFacturaProveedor
  *
  * @author Carlos Garcia Gomez           <carlos@facturascripts.com>
  * @author Jose Antonio Cuello Principal <yopli2000@gmail.com>
@@ -65,7 +65,7 @@ class EditFacturaProveedor extends PurchasesController
             ->addOrderBy(['fecha'], 'date', 1);
 
         // buttons
-        $this->tab($viewName)->addButton([
+        $this->addButton($viewName, [
             'action' => 'generate-accounting',
             'icon' => 'fa-solid fa-wand-magic-sparkles',
             'label' => 'generate-accounting-entry'
@@ -96,14 +96,14 @@ class EditFacturaProveedor extends PurchasesController
             ->addOrderBy(['importe'], 'amount');
 
         // buttons
-        $this->tab($viewName)->addButton([
+        $this->addButton($viewName, [
             'action' => 'generate-receipts',
             'confirm' => 'true',
             'icon' => 'fa-solid fa-wand-magic-sparkles',
             'label' => 'generate-receipts'
         ]);
 
-        $this->tab($viewName)->addButton([
+        $this->addButton($viewName, [
             'action' => 'paid',
             'color' => 'outline-success',
             'confirm' => 'true',
@@ -112,9 +112,8 @@ class EditFacturaProveedor extends PurchasesController
         ]);
 
         // disable columns
-        $this->tab($viewName)
-            ->disableColumn('supplier')
-            ->disableColumn('invoice');
+        $this->views[$viewName]->disableColumn('supplier');
+        $this->views[$viewName]->disableColumn('invoice');
 
         // settings
         $this->setSettings($viewName, 'modalInsert', 'generate-receipts');
@@ -257,9 +256,11 @@ class EditFacturaProveedor extends PurchasesController
      */
     protected function loadData($viewName, $view)
     {
+        $mvn = $this->getMainViewName();
+
         switch ($viewName) {
             case self::VIEW_RECEIPTS:
-                $where = [Where::eq('idfactura', $this->mainTabModelValue('idfactura'))];
+                $where = [Where::eq('idfactura', $this->getViewModelValue($mvn, 'idfactura'))];
                 $view->loadData('', $where);
                 if (empty($view->query)) {
                     $this->checkReceiptsTotal($view->cursor);
@@ -267,16 +268,16 @@ class EditFacturaProveedor extends PurchasesController
                 break;
 
             case self::VIEW_ACCOUNTS:
-                $where = [Where::eq('idasiento', $this->mainTabModelValue('idasiento'))];
+                $where = [Where::eq('idasiento', $this->getViewModelValue($mvn, 'idasiento'))];
                 $view->loadData('', $where);
                 break;
 
             case 'refunds':
-                if ($this->mainTabModelValue('idfacturarect')) {
+                if ($this->getViewModelValue($mvn, 'idfacturarect')) {
                     $this->setSettings($viewName, 'active', false);
                     break;
                 }
-                $where = [Where::eq('idfacturarect', $this->mainTabModelValue('idfactura'))];
+                $where = [Where::eq('idfacturarect', $this->getViewModelValue($mvn, 'idfactura'))];
                 $view->loadData('', $where);
                 break;
 
@@ -414,7 +415,7 @@ class EditFacturaProveedor extends PurchasesController
         }
 
         $codes = $this->request->request->getArray('codes');
-        $model = $this->activeTab()->model;
+        $model = $this->views[$this->active]->model;
         if (empty($codes) || empty($model)) {
             Tools::log()->warning('no-selected-item');
             return true;

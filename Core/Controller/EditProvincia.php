@@ -70,7 +70,7 @@ class EditProvincia extends EditController
     {
         switch ($viewName) {
             case 'ListCiudad':
-                $id_provincia = $this->mainTabModelValue('idprovincia');
+                $id_provincia = $this->getViewModelValue($this->getMainViewName(), 'idprovincia');
                 $where = [Where::eq('idprovincia', $id_provincia)];
                 $view->loadData('', $where);
                 break;

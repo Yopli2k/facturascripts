@@ -39,34 +39,34 @@ class Cuenta extends ModelClass
     use ModelTrait;
     use ExerciseRelationTrait;
 
-    /** @var string Código identificativo de la cuenta contable. */
+    /** @var string */
     public $codcuenta;
 
-    /** @var string Código de la cuenta especial asociada. */
+    /** @var string */
     public $codcuentaesp;
 
-    /** @var float Importe acumulado en el debe de la cuenta. */
+    /** @var float */
     public $debe;
 
-    /** @var string Descripción de la cuenta contable. */
+    /** @var string */
     public $descripcion;
 
-    /** @var bool Indica si se omiten las comprobaciones adicionales del modelo. */
+    /** @var bool */
     private $disable_additional_test = false;
 
-    /** @var float Importe acumulado en el haber de la cuenta. */
+    /** @var float */
     public $haber;
 
-    /** @var int Identificador único de la cuenta contable. */
+    /** @var int */
     public $idcuenta;
 
-    /** @var string Código de la cuenta contable superior. */
+    /** @var string */
     public $parent_codcuenta;
 
-    /** @var int Identificador de la cuenta contable superior. */
+    /** @var int */
     public $parent_idcuenta;
 
-    /** @var float Saldo acumulado de la cuenta contable. */
+    /** @var float */
     public $saldo;
 
     public function clear(): void
@@ -112,7 +112,8 @@ class Cuenta extends ModelClass
      */
     public function getChildren(): array
     {
-        return $this->allWhereEq('parent_idcuenta', $this->idcuenta, ['codcuenta' => 'ASC']);
+        $where = [Where::eq('parent_idcuenta', $this->idcuenta)];
+        return $this->all($where, ['codcuenta' => 'ASC'], 0, 0);
     }
 
     public function getFreeSubjectAccountCode($subject): string
@@ -206,7 +207,8 @@ class Cuenta extends ModelClass
      */
     public function getSubcuentas(): array
     {
-        return DinSubcuenta::allWhereEq('idcuenta', $this->idcuenta, ['codsubcuenta' => 'ASC']);
+        $where = [Where::eq('idcuenta', $this->idcuenta)];
+        return DinSubcuenta::all($where, ['codsubcuenta' => 'ASC'], 0, 0);
     }
 
     public function install(): string
@@ -253,8 +255,12 @@ class Cuenta extends ModelClass
             return false;
         }
 
-        if (strlen($this->descripcion ?? '') < 1) {
-            Tools::log()->warning('field-required', ['%field%' => 'descripcion']);
+        if (strlen($this->descripcion) < 1 || strlen($this->descripcion) > 255) {
+            Tools::log()->warning('invalid-column-lenght', [
+                '%column%' => 'descripcion',
+                '%min%' => '1',
+                '%max%' => '255'
+            ]);
             return false;
         }
 

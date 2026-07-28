@@ -29,7 +29,7 @@ use FacturaScripts\Dinamic\Model\Page;
 use FacturaScripts\Dinamic\Model\RoleAccess;
 
 /**
- * Controlador para editar un único elemento del modelo Role
+ * Controller to edit a single item from the Role model.
  *
  * @author Jose Antonio Cuello Principal <yopli2000@gmail.com>
  * @author Carlos García Gómez           <carlos@facturascripts.com>
@@ -51,7 +51,8 @@ class EditRole extends EditController
             ];
         }
 
-        foreach (RoleAccess::allWhereEq('codrole', $this->getModel()->id()) as $roleAccess) {
+        $where = [Where::eq('codrole', $this->getModel()->id())];
+        foreach (RoleAccess::all($where) as $roleAccess) {
             $rules[$roleAccess->pagename]['show'] = true;
             $rules[$roleAccess->pagename]['onlyOwner'] = $roleAccess->onlyownerdata;
             $rules[$roleAccess->pagename]['update'] = $roleAccess->allowupdate;
@@ -87,7 +88,7 @@ class EditRole extends EditController
         $this->setTabsPosition('bottom');
 
         // desactivamos los botones de opciones e imprimir
-        $this->mainTab()
+        $this->tab($this->getMainViewName())
             ->setSettings('btnOptions', false)
             ->setSettings('btnPrint', false);
 
@@ -125,7 +126,8 @@ class EditRole extends EditController
         $import = $this->request->request->getArray('import', false);
 
         // actualizamos los permisos del rol
-        $rules = RoleAccess::allWhereEq('codrole', $this->request->query('code'));
+        $where = [Where::eq('codrole', $this->request->query('code'))];
+        $rules = RoleAccess::all($where);
         foreach ($rules as $roleAccess) {
             // eliminamos la regla?
             if (false === is_array($show) || false === in_array($roleAccess->pagename, $show)) {
@@ -207,7 +209,7 @@ class EditRole extends EditController
     {
         switch ($viewName) {
             case 'EditRoleUser':
-                $code = $this->mainTabModelValue('codrole');
+                $code = $this->getViewModelValue($this->getMainViewName(), 'codrole');
                 $where = [Where::eq('codrole', $code)];
                 $view->loadData('', $where, ['id' => 'DESC']);
                 break;
@@ -227,7 +229,7 @@ class EditRole extends EditController
         $orphanPages = array_diff($roleAccessPageNames, $pageNames);
         foreach ($orphanPages as $pageName) {
             $page = new RoleAccess();
-            $page->loadWhereEq('pagename', $pageName);
+            $page->loadWhere([Where::eq('pagename', $pageName)]);
             $page->delete();
 
             // si el rol ya no tiene permisos, lo eliminamos.
@@ -235,7 +237,7 @@ class EditRole extends EditController
 
             if ($rolesLength === 0) {
                 $role = new Role();
-                $role->loadWhereEq('codrole', $page->codrole);
+                $role->loadWhere([Where::eq('codrole', $page->codrole)]);
                 $role->delete();
 
                 // redireccionamos al listado, ya que el rol lo hemos borrado

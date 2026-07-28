@@ -40,67 +40,147 @@ class Partida extends ModelClass
     use ModelTrait;
     use AccEntryRelationTrait;
 
-    /** @var float|int Importe de la base imponible asociada a la partida. */
+    /**
+     * Amount of the tax base.
+     *
+     * @var float|int
+     */
     public $baseimponible;
 
-    /** @var string Identificador fiscal relacionado con la partida. */
+    /**
+     * CIF / NIF of the item.
+     *
+     * @var string
+     */
     public $cifnif;
 
-    /** @var string Código de la subcuenta de contrapartida. */
+    /**
+     * Counterparty code.
+     *
+     * @var string
+     */
     public $codcontrapartida;
 
-    /** @var string Código de la divisa utilizada en la partida. */
+    /**
+     * Currency code.
+     *
+     * @var string
+     */
     public $coddivisa;
 
-    /** @var string Código de la serie documental asociada. */
+    /**
+     * Serie code.
+     *
+     * @var string
+     */
     public $codserie;
 
-    /** @var string Código de la subcuenta contable asociada. */
+    /**
+     * Code, not ID, of the related account.
+     *
+     * @var string
+     */
     public $codsubcuenta;
 
-    /** @var string Concepto de la partida contable. */
+    /**
+     * Concept.
+     *
+     * @var string
+     */
     public $concepto;
 
-    /** @var float|int Importe anotado en el debe. */
+    /**
+     * Debit of the accounting entry.
+     *
+     * @var float|int
+     */
     public $debe;
 
-    /** @var bool Indica si se omiten las comprobaciones adicionales del modelo. */
+    /**
+     * @var bool
+     */
     private $disable_additional_test = false;
 
-    /** @var string Documento relacionado con la partida. */
+    /**
+     * Document of departure.
+     *
+     * @var string
+     */
     public $documento;
 
-    /** @var string Número de factura relacionado con la partida. */
+    /**
+     * Invoice number of the departure.
+     *
+     * @var string
+     */
     public $factura;
 
-    /** @var float|int Importe anotado en el haber. */
+    /**
+     * Credit of the accounting entry.
+     *
+     * @var float|int
+     */
     public $haber;
 
-    /** @var int Identificador de la subcuenta de contrapartida. */
+    /**
+     * Identifier of the counterpart.
+     *
+     * @var int
+     */
     public $idcontrapartida;
 
-    /** @var int Identificador único de la partida contable. */
+    /**
+     * Primary key.
+     *
+     * @var int
+     */
     public $idpartida;
 
-    /** @var int Identificador de la subcuenta contable asociada. */
+    /**
+     * Related account ID.
+     *
+     * @var int
+     */
     public $idsubcuenta;
 
-    /** @var float|int Porcentaje de IVA aplicado. */
+    /**
+     * VAT percentage.
+     *
+     * @var float|int
+     */
     public $iva;
 
-    /** @var int Posición visual de la partida dentro del asiento. */
+    /**
+     * Visual order index
+     *
+     * @var int
+     */
     public $orden;
 
-    /** @var bool Indica si la partida ha sido punteada o conciliada. */
+    /**
+     * True if it is dotted, but False.
+     *
+     * @var bool
+     */
     public $punteada;
 
-    /** @var float|int Porcentaje de recargo de equivalencia aplicado. */
+    /**
+     * Equivalence surcharge percentage.
+     *
+     * @var float|int
+     */
     public $recargo;
 
-    /** @var float Saldo acumulado de la subcuenta tras la partida. */
+    /**
+     * @var float
+     */
     public $saldo;
 
-    /** @var float|int Tasa de conversión de la divisa utilizada. */
+    /**
+     * Value of the conversion rate.
+     *
+     * @var float|int
+     */
     public $tasaconv;
 
     public function clear(): void
@@ -248,8 +328,10 @@ class Partida extends ModelClass
         $this->concepto = Tools::noHtml($this->concepto);
         $this->documento = Tools::noHtml($this->documento);
 
-        if (strlen($this->concepto ?? '') < 1) {
-            Tools::log()->warning('field-required', ['%field%' => 'concepto']);
+        if (strlen($this->concepto) < 1 || strlen($this->concepto) > 255) {
+            Tools::log()->warning('invalid-column-lenght', [
+                '%column%' => 'concepto', '%min%' => '1', '%max%' => '255'
+            ]);
             return false;
         }
 

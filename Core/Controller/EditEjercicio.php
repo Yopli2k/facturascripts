@@ -27,10 +27,9 @@ use FacturaScripts\Core\Where;
 use FacturaScripts\Dinamic\Lib\Accounting\AccountingPlanExport;
 use FacturaScripts\Dinamic\Lib\Accounting\AccountingPlanImport;
 use FacturaScripts\Dinamic\Model\Ejercicio;
-use FacturaScripts\Dinamic\Model\WorkEvent;
 
 /**
- * Controlador para editar un único elemento del modelo Ejercicio
+ * Controller to edit a single item from the Ejercicio model
  *
  * @author Carlos García Gómez           <carlos@facturascripts.com>
  * @author Jose Antonio Cuello Principal <yopli2000@gmail.com>
@@ -58,10 +57,10 @@ class EditEjercicio extends EditController
      */
     protected function addExerciseActionButtons(string $viewName): void
     {
-        $status = $this->tabModelValue($viewName, 'estado');
+        $status = $this->getViewModelValue($viewName, 'estado');
         switch ($status) {
             case Ejercicio::EXERCISE_STATUS_OPEN:
-                $this->tab($viewName)->addButton([
+                $this->addButton($viewName, [
                     'row' => 'footer-actions',
                     'action' => 'import-accounting',
                     'color' => 'warning',
@@ -70,7 +69,7 @@ class EditEjercicio extends EditController
                     'type' => 'modal'
                 ]);
 
-                $this->tab($viewName)->addButton([
+                $this->addButton($viewName, [
                     'row' => 'footer-actions',
                     'action' => 'close-exercise',
                     'color' => 'danger',
@@ -81,7 +80,7 @@ class EditEjercicio extends EditController
                 break;
 
             case Ejercicio::EXERCISE_STATUS_CLOSED:
-                $this->tab($viewName)->addButton([
+                $this->addButton($viewName, [
                     'row' => 'footer-actions',
                     'action' => 'open-exercise',
                     'color' => 'warning',
@@ -90,30 +89,6 @@ class EditEjercicio extends EditController
                     'type' => 'modal'
                 ]);
                 break;
-        }
-    }
-
-    /**
-     * Informa al usuario si todavía hay eventos en la cola de trabajo
-     * recalculando los saldos de cuentas y subcuentas.
-     */
-    private function checkPendingBalanceJobs(): void
-    {
-        $where = [
-            Where::eq('done', false),
-            Where::in('name', [
-                'Model.Partida.Save',
-                'Model.Partida.Delete',
-                'Model.Subcuenta.Update',
-                'Model.Subcuenta.Delete',
-                'Model.Cuenta.Update',
-                'Model.Cuenta.Delete',
-            ]),
-        ];
-
-        $pending = WorkEvent::count($where);
-        if ($pending > 0) {
-            Tools::log()->warning('balances-updating-in-background', ['%count%' => $pending]);
         }
     }
 
@@ -163,7 +138,7 @@ class EditEjercicio extends EditController
 
         // disable company column if there is only one company
         if ($this->empresa->count() < 2) {
-            $this->mainTab()->disableColumn('company');
+            $this->views[$this->getMainViewName()]->disableColumn('company');
         }
 
         $this->createViewsAccounting();
@@ -330,13 +305,12 @@ class EditEjercicio extends EditController
      */
     protected function loadData($viewName, $view)
     {
-        $codejercicio = $this->tabModelValue('EditEjercicio', 'codejercicio');
+        $codejercicio = $this->getViewModelValue('EditEjercicio', 'codejercicio');
 
         switch ($viewName) {
             case 'EditEjercicio':
                 parent::loadData($viewName, $view);
                 $this->addExerciseActionButtons($viewName);
-                $this->checkPendingBalanceJobs();
                 break;
 
             case 'ListAsiento':

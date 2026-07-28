@@ -205,8 +205,11 @@ class Ejercicio extends ModelClass
                 'invalid-alphanumeric-code',
                 ['%value%' => $this->codejercicio, '%column%' => 'codejercicio', '%min%' => '1', '%max%' => '4']
             );
-        } elseif (strlen($this->nombre ?? '') < 1) {
-            Tools::log()->warning('field-required', ['%field%' => 'nombre']);
+        } elseif (strlen($this->nombre) < 1 || strlen($this->nombre) > 100) {
+            Tools::log()->warning(
+                'invalid-column-lenght',
+                ['%column%' => 'nombre', '%min%' => '1', '%max%' => '100']
+            );
         } elseif ($this->longsubcuenta < 4 || $this->longsubcuenta > 15) {
             Tools::log()->warning(
                 'invalid-column-lenght',
@@ -245,7 +248,7 @@ class Ejercicio extends ModelClass
         $this->nombre = $year;
 
         // si hay más de una empresa, añadimos el nombre de la empresa
-        if (Empresas::count() > 1) {
+        if (count(Empresas::all()) > 1) {
             $this->nombre = Empresas::get($this->idempresa)->nombrecorto . ' ' . $this->nombre;
         }
 
@@ -272,7 +275,8 @@ class Ejercicio extends ModelClass
 
     protected function saveInsert(): bool
     {
-        foreach ($this->allWhereEq('idempresa', $this->idempresa) as $ejercicio) {
+        $where = [Where::eq('idempresa', $this->idempresa)];
+        foreach ($this->all($where, [], 0, 0) as $ejercicio) {
             if ($this->inRange($ejercicio->fechainicio) || $this->inRange($ejercicio->fechafin)) {
                 Tools::log()->warning(
                     'exercise-date-range-exists', ['%start%' => $this->fechainicio, '%end%' => $this->fechafin]

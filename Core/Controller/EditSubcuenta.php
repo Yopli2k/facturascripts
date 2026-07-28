@@ -31,7 +31,7 @@ use FacturaScripts\Dinamic\Model\Partida;
 use FacturaScripts\Dinamic\Model\Subcuenta;
 
 /**
- * Controlador para editar un único elemento del modelo Subcuenta
+ * Controller to edit a single item from the SubCuenta model
  *
  * @author Carlos García Gómez           <carlos@facturascripts.com>
  * @author Jose Antonio Cuello Principal <yopli2000@gmail.com>
@@ -67,7 +67,7 @@ class EditSubcuenta extends EditController
         CodeModel::setLimit(9999);
 
         // ocultamos el botón imprimir
-        $mvn = $this->mainTabName();
+        $mvn = $this->getMainViewName();
         $this->tab($mvn)->setSettings('btnPrint', false);
 
         // añadimos las partidas de asientos
@@ -97,13 +97,13 @@ class EditSubcuenta extends EditController
             ->addFilterNumber('credit-minor', 'credit', 'haber', '<=');
 
         // botones
-        $this->tab($viewName)->addButton([
+        $this->addButton($viewName, [
             'action' => 'dot-accounting-on',
             'color' => 'info',
             'icon' => 'fa-solid fa-check-double',
             'label' => 'checked'
         ]);
-        $this->tab($viewName)->addButton([
+        $this->addButton($viewName, [
             'action' => 'dot-accounting-off',
             'color' => 'warning',
             'icon' => 'fa-regular fa-square',
@@ -193,11 +193,11 @@ class EditSubcuenta extends EditController
      */
     protected function loadData($viewName, $view)
     {
-        $mainViewName = $this->mainTabName();
+        $mainViewName = $this->getMainViewName();
 
         switch ($viewName) {
             case 'ListPartidaAsiento':
-                $idsubcuenta = $this->mainTabModelValue('idsubcuenta');
+                $idsubcuenta = $this->getViewModelValue($mainViewName, 'idsubcuenta');
                 $where = [Where::eq('idsubcuenta', $idsubcuenta)];
                 $view->loadData('', $where);
                 if ($view->count == 0) {
@@ -208,7 +208,7 @@ class EditSubcuenta extends EditController
                 unset($view->totalAmounts['saldo']);
 
                 // añadimos botón de informe de mayor
-                $this->tab($mainViewName)->addButton([
+                $this->addButton($mainViewName, [
                     'action' => 'ledger',
                     'color' => 'info',
                     'icon' => 'fa-solid fa-print fa-fw',
@@ -265,7 +265,7 @@ class EditSubcuenta extends EditController
 
     private function setLedgerReportExportOptions(string $viewName): void
     {
-        $columnFormat = $this->tab($viewName)->columnModalForName('format');
+        $columnFormat = $this->views[$viewName]->columnModalForName('format');
         if ($columnFormat && $columnFormat->widget->getType() === 'select') {
             $values = [];
             foreach ($this->exportManager->options() as $key => $options) {
@@ -277,11 +277,11 @@ class EditSubcuenta extends EditController
 
     private function setLedgerReportValues(string $viewName): void
     {
-        $codeExercise = $this->tabModelValue($viewName, 'codejercicio');
+        $codeExercise = $this->getViewModelValue($viewName, 'codejercicio');
         $exercise = new Ejercicio();
         $exercise->load($codeExercise);
 
-        $model = $this->tab($viewName)->model;
+        $model = $this->views[$viewName]->model;
         $model->dateFrom = $exercise->fechainicio;
         $model->dateTo = $exercise->fechafin;
     }

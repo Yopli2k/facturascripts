@@ -34,22 +34,41 @@ class Serie extends ModelClass
 {
     use ModelTrait;
 
-    /** @var int Canal contable asociado a la serie. */
+    /**
+     * @var int
+     */
     public $canal;
 
-    /** @var string Código identificativo de la serie. */
+    /**
+     * Primary key. Varchar (4).
+     *
+     * @var string
+     */
     public $codserie;
 
-    /** @var string Descripción de la serie de facturación. */
+    /**
+     * Description of the billing series.
+     *
+     * @var string
+     */
     public $descripcion;
 
-    /** @var int Identificador del diario contable asociado. */
+    /**
+     * @var int
+     */
     public $iddiario;
 
-    /** @var bool Indica si los documentos de la serie se emiten sin impuestos. */
+    /**
+     * If associated invoices are without tax True, else False.
+     *
+     * @var bool
+     */
     public $siniva;
 
-    /** @var string Tipo de serie: simplificada, rectificativa u ordinaria. */
+    /**
+     *
+     * @var string
+     */
     public $tipo;
 
     public function clear(): void

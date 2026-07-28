@@ -41,34 +41,34 @@ namespace FacturaScripts\Core;
  */
 class Http
 {
-    /** @var string Cuerpo crudo de la respuesta tras `exec()`. */
+    /** Cuerpo crudo de la respuesta tras `exec()`. @var string */
     protected $body;
 
-    /** @var array Mapa de opciones cURL que se aplicarán a la petición. */
+    /** Mapa de opciones cURL que se aplicarán a la petición. @var array */
     private $curlOptions;
 
-    /** @var mixed Datos a enviar: array (se codifica según método y Content-Type) o string en bruto. */
+    /** Datos a enviar: array (se codifica según método y Content-Type) o string en bruto. @var mixed */
     protected $data;
 
-    /** @var string Mensaje de error devuelto por `curl_error()`, vacío si no hubo fallo a nivel de transporte. */
+    /** Mensaje de error devuelto por `curl_error()`, vacío si no hubo fallo a nivel de transporte. @var string */
     public $error;
 
-    /** @var bool Indica si la petición ya se ha ejecutado, para evitar dispararla varias veces. */
+    /** Indica si la petición ya se ha ejecutado, para evitar dispararla varias veces. @var bool */
     private $executed = false;
 
-    /** @var array Cabeceras de la petición saliente, ya formateadas como `"Clave: Valor"`. */
+    /** Cabeceras de la petición saliente, ya formateadas como `"Clave: Valor"`. @var array */
     private $headers = [];
 
-    /** @var string Método HTTP de la petición (GET, POST, PUT, PATCH, DELETE). */
+    /** Método HTTP de la petición (GET, POST, PUT, PATCH, DELETE). @var string */
     protected $method;
 
-    /** @var array Cabeceras de respuesta indexadas en minúsculas, cada una con sus valores como array. */
+    /** Cabeceras de respuesta indexadas en minúsculas, cada una con sus valores como array. @var array */
     private $responseHeaders = [];
 
-    /** @var int Código HTTP de respuesta. 0 mientras no se haya ejecutado la petición. */
+    /** Código HTTP de respuesta. 0 mientras no se haya ejecutado la petición. @var int */
     private $statusCode = 0;
 
-    /** @var string URL destino. Para GET/DELETE con `$data` array, los parámetros se añaden como query string al ejecutar. */
+    /** URL destino. Para GET/DELETE con `$data` array, los parámetros se añaden como query string al ejecutar. @var string */
     protected $url;
 
     /**

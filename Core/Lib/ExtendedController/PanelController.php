@@ -83,7 +83,7 @@ abstract class PanelController extends BaseController
         }
 
         // Load the data for each view
-        $mainViewName = $this->mainTabName();
+        $mainViewName = $this->getMainViewName();
         foreach ($this->views as $viewName => $view) {
             // disable views if main view has no data
             if ($viewName != $mainViewName && false === $this->hasData) {
@@ -231,34 +231,34 @@ abstract class PanelController extends BaseController
 
         // loads model data
         $code = $this->request->input('code', '');
-        if (!$this->activeTab()->model->loadFromCode($code)) {
+        if (!$this->views[$this->active]->model->loadFromCode($code)) {
             Tools::log()->error('record-not-found');
             return false;
         }
 
         // User can modify this record?
-        if (false === $this->checkOwnerData($this->activeTab()->model)) {
+        if (false === $this->checkOwnerData($this->views[$this->active]->model)) {
             Tools::log()->warning('not-allowed-modify');
             return false;
         }
 
         // loads form data
-        $this->activeTab()->processFormData($this->request, 'edit');
+        $this->views[$this->active]->processFormData($this->request, 'edit');
 
         // has PK value been changed?
-        $this->activeTab()->newCode = (string)$this->activeTab()->model->primaryColumnValue();
-        if ($code !== $this->activeTab()->newCode && $this->activeTab()->model->test()) {
-            $pkColumn = $this->activeTab()->model->primaryColumn();
-            $this->activeTab()->model->{$pkColumn} = $code;
+        $this->views[$this->active]->newCode = (string)$this->views[$this->active]->model->primaryColumnValue();
+        if ($code !== $this->views[$this->active]->newCode && $this->views[$this->active]->model->test()) {
+            $pkColumn = $this->views[$this->active]->model->primaryColumn();
+            $this->views[$this->active]->model->{$pkColumn} = $code;
             // change in database
-            if (!$this->activeTab()->model->changePrimaryColumnValue($this->activeTab()->newCode)) {
+            if (!$this->views[$this->active]->model->changePrimaryColumnValue($this->views[$this->active]->newCode)) {
                 Tools::log()->error('record-save-error');
                 return false;
             }
         }
 
         // save in database
-        if ($this->activeTab()->model->save()) {
+        if ($this->views[$this->active]->model->save()) {
             Tools::log()->notice('record-updated-correctly');
             return true;
         }
@@ -333,9 +333,9 @@ abstract class PanelController extends BaseController
 
             case 'delete':
             case 'delete-document':
-                if ($this->deleteAction() && $this->active === $this->mainTabName()) {
+                if ($this->deleteAction() && $this->active === $this->getMainViewName()) {
                     // al eliminar el registro principal, redirigimos al listado para mostrar ahí el mensaje de éxito
-                    $listUrl = $this->activeTab()->model->url('list');
+                    $listUrl = $this->views[$this->active]->model->url('list');
                     $redirect = strpos($listUrl, '?') === false ?
                         $listUrl . '?action=delete-ok' :
                         $listUrl . '&action=delete-ok';
@@ -345,14 +345,14 @@ abstract class PanelController extends BaseController
 
             case 'edit':
                 if ($this->editAction()) {
-                    $this->activeTab()->model->clear();
+                    $this->views[$this->active]->model->clear();
                 }
                 break;
 
             case 'insert':
-                if ($this->insertAction() || !empty($this->activeTab()->model->primaryColumnValue())) {
+                if ($this->insertAction() || !empty($this->views[$this->active]->model->primaryColumnValue())) {
                     // we need to clear model in these scenarios
-                    $this->activeTab()->model->clear();
+                    $this->views[$this->active]->model->clear();
                 }
                 break;
 
@@ -381,24 +381,24 @@ abstract class PanelController extends BaseController
         }
 
         // loads form data
-        $this->activeTab()->processFormData($this->request, 'edit');
-        if ($this->activeTab()->model->exists()) {
+        $this->views[$this->active]->processFormData($this->request, 'edit');
+        if ($this->views[$this->active]->model->exists()) {
             Tools::log()->error('duplicate-record');
             return false;
         }
 
         // save in database
-        if (false === $this->activeTab()->model->save()) {
+        if (false === $this->views[$this->active]->model->save()) {
             Tools::log()->error('record-save-error');
             return false;
         }
 
         // redirect to new model url only if this is the first view
-        if ($this->active === $this->mainTabName()) {
-            $this->redirect($this->activeTab()->model->url() . '&action=save-ok');
+        if ($this->active === $this->getMainViewName()) {
+            $this->redirect($this->views[$this->active]->model->url() . '&action=save-ok');
         }
 
-        $this->activeTab()->newCode = $this->activeTab()->model->primaryColumnValue();
+        $this->views[$this->active]->newCode = $this->views[$this->active]->model->primaryColumnValue();
         Tools::log()->notice('record-updated-correctly');
         return true;
     }

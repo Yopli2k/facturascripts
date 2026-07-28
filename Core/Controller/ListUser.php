@@ -28,7 +28,7 @@ use FacturaScripts\Core\Tools;
 use FacturaScripts\Core\Where;
 
 /**
- * Controlador para listar los elementos del modelo User
+ * Controller to list the items in the User model
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */

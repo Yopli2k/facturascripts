@@ -27,7 +27,7 @@ use FacturaScripts\Core\Where;
 use FacturaScripts\Dinamic\Model\Producto;
 
 /**
- * Controlador para editar un único elemento del modelo Familia
+ * Controller to edit a single item from the Familia model
  *
  * @author Carlos García Gómez           <carlos@facturascripts.com>
  * @author Jose Antonio Cuello Principal <yopli2000@gmail.com>
@@ -88,11 +88,14 @@ class EditFamilia extends EditController
 
     protected function createViewFamilies(string $viewName = 'ListFamilia'): void
     {
-        $this->addListView($viewName, 'Familia', 'subfamilies', 'fa-solid fa-sitemap')
-            ->addOrderBy(['codfamilia'], 'code')
-            // desactivamos la columna de familia padre y el botón de eliminar
-            ->disableColumn('parent')
-            ->setSettings('btnDelete', false);
+        $this->addListView($viewName, 'Familia', 'subfamilies', 'fa-solid fa-sitemap');
+        $this->views[$viewName]->addOrderBy(['codfamilia'], 'code');
+
+        // desactivamos la columna de familia padre
+        $this->views[$viewName]->disableColumn('parent');
+
+        // desactivamos el botón de eliminar
+        $this->setSettings($viewName, 'btnDelete', false);
     }
 
     protected function createViewNewProducts(string $viewName = 'ListProducto-new'): void
@@ -101,7 +104,7 @@ class EditFamilia extends EditController
         $this->createViewProductsCommon($viewName);
 
         // botón añadir producto
-        $this->tab($viewName)->addButton([
+        $this->addButton($viewName, [
             'action' => 'add-product',
             'color' => 'success',
             'icon' => 'fa-solid fa-folder-plus',
@@ -115,7 +118,7 @@ class EditFamilia extends EditController
         $this->createViewProductsCommon($viewName);
 
         // botón quitar producto
-        $this->tab($viewName)->addButton([
+        $this->addButton($viewName, [
             'action' => 'remove-product',
             'color' => 'danger',
             'confirm' => true,
@@ -126,36 +129,41 @@ class EditFamilia extends EditController
 
     protected function createViewProductsCommon(string $viewName): void
     {
-        $manufacturers = $this->codeModel->all('fabricantes', 'codfabricante', 'nombre');
-        $taxes = Impuestos::codeModel();
+        $this->views[$viewName]->addSearchFields(['descripcion', 'referencia']);
+        $this->views[$viewName]->addOrderBy(['referencia'], 'reference', 1);
+        $this->views[$viewName]->addOrderBy(['precio'], 'price');
+        $this->views[$viewName]->addOrderBy(['stockfis'], 'stock');
 
-        $this->listView($viewName)
-            ->addSearchFields(['descripcion', 'referencia'])
-            ->addOrderBy(['referencia'], 'reference', 1)
-            ->addOrderBy(['precio'], 'price')
-            ->addOrderBy(['stockfis'], 'stock')
-            // filtros
-            ->addFilterSelectWhere('status', [
-                ['label' => Tools::trans('only-active'), 'where' => [Where::eq('bloqueado', false)]],
-                ['label' => Tools::trans('blocked'), 'where' => [Where::eq('bloqueado', true)]],
-                ['label' => Tools::trans('public'), 'where' => [Where::eq('publico', true)]],
-                ['label' => Tools::trans('all'), 'where' => []]
-            ])
-            ->addFilterSelect('codfabricante', 'manufacturer', 'codfabricante', $manufacturers)
-            ->addFilterNumber('min-price', 'price', 'precio', '<=')
-            ->addFilterNumber('max-price', 'price', 'precio', '>=')
-            ->addFilterNumber('min-stock', 'stock', 'stockfis', '<=')
-            ->addFilterNumber('max-stock', 'stock', 'stockfis', '>=')
-            ->addFilterSelect('codimpuesto', 'tax', 'codimpuesto', $taxes)
-            ->addFilterCheckbox('nostock', 'no-stock', 'nostock')
-            ->addFilterCheckbox('ventasinstock', 'allow-sale-without-stock', 'ventasinstock')
-            ->addFilterCheckbox('secompra', 'for-purchase', 'secompra')
-            ->addFilterCheckbox('sevende', 'for-sale', 'sevende')
-            ->addFilterCheckbox('publico', 'public', 'publico')
-            // desactivamos la columna familia y los botones de nuevo y eliminar
-            ->disableColumn('family')
-            ->setSettings('btnNew', false)
-            ->setSettings('btnDelete', false);
+        // filtros
+        $i18n = Tools::lang();
+        $this->views[$viewName]->addFilterSelectWhere('status', [
+            ['label' => $i18n->trans('only-active'), 'where' => [Where::eq('bloqueado', false)]],
+            ['label' => $i18n->trans('blocked'), 'where' => [Where::eq('bloqueado', true)]],
+            ['label' => $i18n->trans('public'), 'where' => [Where::eq('publico', true)]],
+            ['label' => $i18n->trans('all'), 'where' => []]
+        ]);
+
+        $manufacturers = $this->codeModel->all('fabricantes', 'codfabricante', 'nombre');
+        $this->views[$viewName]->addFilterSelect('codfabricante', 'manufacturer', 'codfabricante', $manufacturers);
+
+        $this->views[$viewName]->addFilterNumber('min-price', 'price', 'precio', '<=');
+        $this->views[$viewName]->addFilterNumber('max-price', 'price', 'precio', '>=');
+        $this->views[$viewName]->addFilterNumber('min-stock', 'stock', 'stockfis', '<=');
+        $this->views[$viewName]->addFilterNumber('max-stock', 'stock', 'stockfis', '>=');
+
+        $taxes = Impuestos::codeModel();
+        $this->views[$viewName]->addFilterSelect('codimpuesto', 'tax', 'codimpuesto', $taxes);
+
+        $this->views[$viewName]->addFilterCheckbox('nostock', 'no-stock', 'nostock');
+        $this->views[$viewName]->addFilterCheckbox('ventasinstock', 'allow-sale-without-stock', 'ventasinstock');
+        $this->views[$viewName]->addFilterCheckbox('secompra', 'for-purchase', 'secompra');
+        $this->views[$viewName]->addFilterCheckbox('sevende', 'for-sale', 'sevende');
+        $this->views[$viewName]->addFilterCheckbox('publico', 'public', 'publico');
+
+        // desactivamos la columna familia y los botones de nuevo y eliminar
+        $this->views[$viewName]->disableColumn('family');
+        $this->setSettings($viewName, 'btnNew', false);
+        $this->setSettings($viewName, 'btnDelete', false);
     }
 
     /**
@@ -187,7 +195,7 @@ class EditFamilia extends EditController
      */
     protected function loadData($viewName, $view)
     {
-        $codfamilia = $this->mainTabModelValue('codfamilia');
+        $codfamilia = $this->getViewModelValue($this->getMainViewName(), 'codfamilia');
         switch ($viewName) {
             case 'ListProducto':
                 $where = [Where::eq('codfamilia', $codfamilia)];

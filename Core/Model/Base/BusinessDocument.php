@@ -68,20 +68,20 @@ abstract class BusinessDocument extends NewModelClass
      */
     public $codigo;
 
-    /** @var array Campos que no se deben copiar al duplicar o transformar el documento. */
+    /** @var array */
     protected static $dont_copy_fields = ['codejercicio', 'codigo', 'codigorect', 'fecha', 'femail', 'hora',
         'idasiento', 'idestado', 'idfacturarect', 'neto', 'netosindto', 'numero', 'pagada', 'total', 'totalirpf',
         'totaliva', 'totalrecargo', 'totalsuplidos'];
 
     /**
-     * Primer porcentaje de descuento global del documento.
+     * Porcentaje de descuento.
      *
      * @var float
      */
     public $dtopor1;
 
     /**
-     * Segundo porcentaje de descuento global del documento.
+     * Porcentaje de descuento.
      *
      * @var float
      */

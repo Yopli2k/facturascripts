@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2018-2026 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2018-2024 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -19,12 +19,12 @@
 
 namespace FacturaScripts\Core\Lib;
 
+use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
 use FacturaScripts\Core\Model\Base\BusinessDocument;
 use FacturaScripts\Core\Model\Base\BusinessDocumentLine;
 use FacturaScripts\Core\Model\Base\TransformerDocument;
 use FacturaScripts\Core\Session;
 use FacturaScripts\Core\Template\ExtensionsTrait;
-use FacturaScripts\Core\Where;
 use FacturaScripts\Dinamic\Model\AttachedFileRelation;
 use FacturaScripts\Dinamic\Model\DocTransformation;
 
@@ -159,22 +159,12 @@ class BusinessDocumentGenerator
                 $arrayLine[$field] = $line->{$field};
             }
 
-            if (isset($quantity[$line->id()])) {
-                $arrayLine['cantidad'] = $quantity[$line->id()];
+            if (isset($quantity[$line->primaryColumnValue()])) {
+                $arrayLine['cantidad'] = $quantity[$line->primaryColumnValue()];
             }
 
             if (empty($arrayLine['cantidad']) && !empty($line->cantidad)) {
                 continue;
-            }
-
-            // actualizamos el servido de la línea original antes de guardar la nueva línea,
-            // para que la parte de stock que deja de cubrir la pueda tomar la nueva línea
-            if (!empty($line->id())) {
-                $line->reload();
-                $line->servido += (float)$arrayLine['cantidad'];
-                if (!$line->save()) {
-                    return false;
-                }
             }
 
             $newLine = $newDoc->getNewLine($arrayLine);
@@ -187,11 +177,11 @@ class BusinessDocumentGenerator
             $docTrans->cantidad = $newLine->cantidad;
             $docTrans->model1 = $prototype->modelClassName();
             $docTrans->iddoc1 = $line->documentColumnValue();
-            $docTrans->idlinea1 = $line->id();
+            $docTrans->idlinea1 = $line->primaryColumnValue();
             $docTrans->model2 = $newDoc->modelClassName();
-            $docTrans->iddoc2 = $newDoc->id();
-            $docTrans->idlinea2 = $newLine->id();
-            if (!empty($line->id()) && !$docTrans->save()) {
+            $docTrans->iddoc2 = $newDoc->primaryColumnValue();
+            $docTrans->idlinea2 = $newLine->primaryColumnValue();
+            if (!empty($line->primaryColumnValue()) && !$docTrans->save()) {
                 return false;
             }
 
@@ -217,14 +207,14 @@ class BusinessDocumentGenerator
         $relationModel = new AttachedFileRelation();
         foreach ($newDoc->parentDocuments() as $parent) {
             $whereDocs = [
-                Where::eq('model', $parent->modelClassName()),
-                Where::eq('modelid', $parent->id())
+                new DataBaseWhere('model', $parent->modelClassName()),
+                new DataBaseWhere('modelid', $parent->primaryColumnValue())
             ];
             foreach ($relationModel->all($whereDocs, ['id' => 'ASC']) as $relation) {
                 $newRelation = new AttachedFileRelation();
                 $newRelation->idfile = $relation->idfile;
                 $newRelation->model = $newDoc->modelClassName();
-                $newRelation->modelid = $newDoc->id();
+                $newRelation->modelid = $newDoc->primaryColumnValue();
                 $newRelation->nick = $relation->nick;
                 $newRelation->observations = $relation->observations;
                 $newRelation->modelcode = $newDoc->codigo;

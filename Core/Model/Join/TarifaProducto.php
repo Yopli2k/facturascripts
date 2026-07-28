@@ -20,15 +20,13 @@
 namespace FacturaScripts\Core\Model\Join;
 
 use FacturaScripts\Core\Template\JoinModel;
+use FacturaScripts\Core\Where;
 use FacturaScripts\Dinamic\Model\Producto;
 use FacturaScripts\Dinamic\Model\Tarifa;
 use FacturaScripts\Dinamic\Model\Variante;
 
 /**
- * Modelo auxiliar para obtener los precios de los productos según la tarifa.
- * Combina cada tarifa con todas las variantes y sus productos, y expone el
- * atributo calculado preciotarifa con el precio resultante de aplicar la
- * tarifa a cada variante.
+ * Description of TarifaProducto
  *
  * @author Carlos Garcia Gomez <carlos@facturascripts.com>
  *
@@ -44,7 +42,7 @@ use FacturaScripts\Dinamic\Model\Variante;
  */
 class TarifaProducto extends JoinModel
 {
-    /** @var Tarifa[] Caché de tarifas por código, compartida entre instancias. */
+    /** @var Tarifa[] */
     private static $rates = [];
 
     public function __construct(array $data = [])
@@ -52,18 +50,15 @@ class TarifaProducto extends JoinModel
         parent::__construct($data);
         $this->setMasterModel(new Producto());
 
-        // dependencia necesaria: fuerza la carga de la clase Variante
-        // para que esté disponible en Dinamic
+        // needed dependency
         new Variante();
     }
 
-    /** El atributo preciotarifa no viene de la consulta: se calcula al leerlo. */
     public function __get($name)
     {
         return $name === 'preciotarifa' ? $this->priceInRate() : parent::__get($name);
     }
 
-    /** Devuelve la tarifa de esta línea, cacheada por código. */
     public function getRate(): Tarifa
     {
         if (isset(self::$rates[$this->codtarifa])) {
@@ -83,16 +78,11 @@ class TarifaProducto extends JoinModel
         return $this->idproducto;
     }
 
-    /**
-     * Calcula el precio de la variante tras aplicar la tarifa. Si encuentra la
-     * variante, aplica la tarifa sobre ella y su producto; si no, aplica la
-     * tarifa directamente sobre el coste y el precio de esta línea.
-     */
     public function priceInRate(): float
     {
         // intentamos obtener la variante para aplicar mejor la tarifa
         $variant = new Variante();
-        if ($variant->loadWhereEq('referencia', $this->referencia)) {
+        if ($variant->loadWhere([Where::eq('referencia', $this->referencia)])) {
             $product = $variant->getProducto();
             return $this->getRate()->applyTo($variant, $product);
         }

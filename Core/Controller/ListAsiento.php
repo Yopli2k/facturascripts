@@ -27,7 +27,7 @@ use FacturaScripts\Core\Tools;
 use FacturaScripts\Core\Where;
 
 /**
- * Controlador para listar los elementos del modelo Asiento
+ * Controller to list the items in the Asiento model
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
@@ -246,7 +246,7 @@ class ListAsiento extends ListController
         }
 
         $codes = $this->request->request->getArray('codes');
-        $model = $this->activeTab()->model;
+        $model = $this->views[$this->active]->model;
         if (false === is_array($codes) || empty($model)) {
             Tools::log()->warning('no-selected-item');
             return;

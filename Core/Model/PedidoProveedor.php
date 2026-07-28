@@ -23,6 +23,7 @@ namespace FacturaScripts\Core\Model;
 use FacturaScripts\Core\Lib\Calculator;
 use FacturaScripts\Core\Model\Base\PurchaseDocument;
 use FacturaScripts\Core\Template\ModelTrait;
+use FacturaScripts\Core\Where;
 use FacturaScripts\Dinamic\Model\LineaPedidoProveedor as LineaPedido;
 
 /**
@@ -34,7 +35,11 @@ class PedidoProveedor extends PurchaseDocument
 {
     use ModelTrait;
 
-    /** @var int Identificador único del pedido de proveedor. */
+    /**
+     * Primary key.
+     *
+     * @var int
+     */
     public $idpedido;
 
     /**
@@ -44,8 +49,9 @@ class PedidoProveedor extends PurchaseDocument
      */
     public function getLines(): array
     {
+        $where = [Where::eq('idpedido', $this->idpedido)];
         $order = ['orden' => 'DESC', 'idlinea' => 'ASC'];
-        return LineaPedido::allWhereEq('idpedido', $this->idpedido, $order);
+        return LineaPedido::all($where, $order, 0, 0);
     }
 
     /**

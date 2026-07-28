@@ -42,37 +42,79 @@ class Variante extends ModelClass
     use ModelTrait;
     use ProductRelationTrait;
 
-    /** @var string Código de barras de la variante. */
+    /**
+     * Barcode. Maximum 20 characters.
+     *
+     * @var string
+     */
     public $codbarras;
 
-    /** @var int|float Precio de coste de la variante. */
+    /**
+     * Cost price.
+     *
+     * @var int|float
+     */
     public $coste;
 
-    /** @var int Identificador del primer valor de atributo de la variante. */
+    /**
+     * Foreign key of table atributo_valores.
+     *
+     * @var int
+     */
     public $idatributovalor1;
 
-    /** @var int Identificador del segundo valor de atributo de la variante. */
+    /**
+     * Foreign key of table atributo_valores.
+     *
+     * @var int
+     */
     public $idatributovalor2;
 
-    /** @var int Identificador del tercer valor de atributo de la variante. */
+    /**
+     * Foreign key of table atributo_valores.
+     *
+     * @var int
+     */
     public $idatributovalor3;
 
-    /** @var int Identificador del cuarto valor de atributo de la variante. */
+    /**
+     * Foreign key of table atributo_valores.
+     *
+     * @var int
+     */
     public $idatributovalor4;
 
-    /** @var int Identificador único de la variante. */
+    /**
+     * Primary Key, autoincremental.
+     *
+     * @var int
+     */
     public $idvariante;
 
-    /** @var float Porcentaje de margen de beneficio de la variante. */
+    /**
+     * @var float
+     */
     public $margen;
 
-    /** @var int|float Precio de venta de la variante sin impuestos. */
+    /**
+     * Price of the variant. Without tax.
+     *
+     * @var int|float
+     */
     public $precio;
 
-    /** @var string Referencia o SKU de la variante. */
+    /**
+     * Reference of the variant. Maximum 30 characters.
+     *
+     * @var string
+     */
     public $referencia;
 
-    /** @var float|int Stock físico total de la variante. */
+    /**
+     * Physical stock.
+     *
+     * @var float|int
+     */
     public $stockfis;
 
     public function clear(): void
@@ -338,6 +380,13 @@ class Variante extends ModelClass
 
         if (empty($this->referencia)) {
             $this->referencia = (string)$this->newCode('referencia');
+        }
+        if (strlen($this->referencia) > 30) {
+            Tools::log()->warning(
+                'invalid-column-lenght',
+                ['%value%' => $this->referencia, '%column%' => 'referencia', '%min%' => '1', '%max%' => '30']
+            );
+            return false;
         }
 
         return parent::test();

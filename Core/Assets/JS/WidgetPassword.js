@@ -15,25 +15,4 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
-$(document).ready(function () {
-    $(document).on('click', '.edit-psw', function(){
-        let input = $(this).parent().parent().find('input[type="text"]');
-
-        if ($(input).hasClass('fs-psw')) {
-            $(input).removeClass('fs-psw');
-        } else {
-            $(input).addClass('fs-psw');
-        }
-    });
-
-    $(document).on('mouseenter mouseleave', '.list-psw', function(){
-        let psw = $(this).parent().find('.pass');
-
-        if ($(psw).hasClass('fs-psw')) {
-            $(psw).removeClass('fs-psw');
-        } else {
-            $(psw).addClass('fs-psw');
-        }
-    });
-});
+$(document).ready((function(){$(document).on("click",".edit-psw",(function(){let s=$(this).parent().parent().find('input[type="text"]');$(s).hasClass("fs-psw")?$(s).removeClass("fs-psw"):$(s).addClass("fs-psw")})),$(document).on("mouseenter mouseleave",".list-psw",(function(){let s=$(this).parent().find(".pass");$(s).hasClass("fs-psw")?$(s).removeClass("fs-psw"):$(s).addClass("fs-psw")}))}));

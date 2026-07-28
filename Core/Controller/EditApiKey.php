@@ -22,10 +22,11 @@ namespace FacturaScripts\Core\Controller;
 use FacturaScripts\Core\Lib\ExtendedController\BaseView;
 use FacturaScripts\Core\Lib\ExtendedController\EditController;
 use FacturaScripts\Core\Tools;
+use FacturaScripts\Core\Where;
 use FacturaScripts\Dinamic\Model\ApiAccess;
 
 /**
- * Controlador para editar un único elemento del modelo ApiKey
+ * Controller to edit a single item from the ApiKey model.
  *
  * @author Francesc Pineda Segarra  <francesc.pineda.segarra@gmail.com>
  * @author Carlos García Gómez      <carlos@facturascripts.com>
@@ -44,7 +45,8 @@ class EditApiKey extends EditController
             ];
         }
 
-        foreach (ApiAccess::allWhereEq('idapikey', $this->request->query('code')) as $access) {
+        $where = [Where::eq('idapikey', $this->request->query('code'))];
+        foreach (ApiAccess::all($where) as $access) {
             $rules[$access->resource]['allowget'] = $access->allowget;
             $rules[$access->resource]['allowpost'] = $access->allowpost;
             $rules[$access->resource]['allowput'] = $access->allowput;
@@ -100,7 +102,8 @@ class EditApiKey extends EditController
         $allowDelete = $this->request->request->getArray('allowdelete', false);
 
         // update current access rules
-        $rules = ApiAccess::allWhereEq('idapikey', $this->request->query('code'));
+        $where = [Where::eq('idapikey', $this->request->query('code'))];
+        $rules = ApiAccess::all($where);
         foreach ($rules as $access) {
             $access->allowget = in_array($access->resource, $allowGet);
             $access->allowput = in_array($access->resource, $allowPut);
@@ -194,7 +197,7 @@ class EditApiKey extends EditController
      */
     protected function loadData($viewName, $view)
     {
-        $mainViewName = $this->mainTabName();
+        $mainViewName = $this->getMainViewName();
         switch ($viewName) {
             case $mainViewName:
                 parent::loadData($viewName, $view);

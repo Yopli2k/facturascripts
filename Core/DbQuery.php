@@ -43,31 +43,31 @@ use FacturaScripts\Core\Base\DataBase\DataBaseWhere;
  */
 final class DbQuery
 {
-    /** @var DataBase Conexión compartida perezosa para todas las instancias del builder. */
+    /** Conexión compartida perezosa para todas las instancias del builder. @var DataBase */
     private static $db;
 
-    /** @var string Lista de campos del SELECT (ya escapados o en bruto si vinieron de selectRaw). */
+    /** Lista de campos del SELECT (ya escapados o en bruto si vinieron de selectRaw). @var string */
     public $fields = '*';
 
-    /** @var string Cláusula GROUP BY ya construida (campos escapados separados por coma). */
+    /** Cláusula GROUP BY ya construida (campos escapados separados por coma). @var string */
     public $groupBy;
 
-    /** @var string Cláusula HAVING en bruto. */
+    /** Cláusula HAVING en bruto. @var string */
     public $having;
 
-    /** @var int Límite de filas. 0 significa sin límite. */
+    /** Límite de filas. 0 significa sin límite. @var int */
     public $limit = 0;
 
-    /** @var int Desplazamiento de filas para paginación. */
+    /** Desplazamiento de filas para paginación. @var int */
     public $offset = 0;
 
-    /** @var array Lista de fragmentos `campo ASC|DESC` ya construidos para el ORDER BY. */
+    /** Lista de fragmentos `campo ASC|DESC` ya construidos para el ORDER BY. @var array */
     public $orderBy = [];
 
-    /** @var string Nombre de la tabla destino, sin escapar. */
+    /** Nombre de la tabla destino, sin escapar. @var string */
     private $table;
 
-    /** @var Where[] Cláusulas WHERE acumuladas, combinadas con AND al construir el SQL. */
+    /** Cláusulas WHERE acumuladas, combinadas con AND al construir el SQL. @var Where[] */
     private $where = [];
 
     /** Inicia una consulta sobre la tabla indicada; usar preferentemente el factory `DbQuery::table()`. */

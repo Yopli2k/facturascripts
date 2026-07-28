@@ -28,7 +28,7 @@ use FacturaScripts\Dinamic\Model\Contacto;
 use FacturaScripts\Dinamic\Model\RoleAccess;
 
 /**
- * Controlador para editar un único elemento del modelo Contacto
+ * Controller to edit a single item from the Contacto model
  *
  * @author Carlos García Gómez <carlos@facturascripts.com>
  */
@@ -40,8 +40,8 @@ class EditContacto extends EditController
 
     public function getImageUrl(): string
     {
-        $mvn = $this->mainTabName();
-        return $this->tab($mvn)->model->gravatar();
+        $mvn = $this->getMainViewName();
+        return $this->views[$mvn]->model->gravatar();
     }
 
     public function getModelClassName(): string
@@ -62,7 +62,7 @@ class EditContacto extends EditController
     {
         $accessClient = $this->getRolePermissions('EditCliente');
         if (empty($view->model->codcliente) && $accessClient['allowupdate']) {
-            $view->addButton([
+            $this->addButton($viewName, [
                 'action' => 'convert-into-customer',
                 'color' => 'success',
                 'icon' => 'fa-solid fa-user-check',
@@ -72,7 +72,7 @@ class EditContacto extends EditController
 
         $accessSupplier = $this->getRolePermissions('EditProveedor');
         if (empty($view->model->codproveedor) && $accessSupplier['allowupdate']) {
-            $view->addButton([
+            $this->addButton($viewName, [
                 'action' => 'convert-into-supplier',
                 'color' => 'success',
                 'icon' => 'fa-solid fa-user-cog',
@@ -101,8 +101,8 @@ class EditContacto extends EditController
             return;
         }
 
-        $mvn = $this->mainTabName();
-        $customer = $this->tab($mvn)->model->getCustomer();
+        $mvn = $this->getMainViewName();
+        $customer = $this->views[$mvn]->model->getCustomer();
         if ($customer->exists()) {
             Tools::log()->notice('record-updated-correctly');
             $this->redirect($customer->url() . '&action=save-ok');
@@ -136,8 +136,8 @@ class EditContacto extends EditController
             return;
         }
 
-        $mvn = $this->mainTabName();
-        $supplier = $this->tab($mvn)->model->getSupplier();
+        $mvn = $this->getMainViewName();
+        $supplier = $this->views[$mvn]->model->getSupplier();
         if ($supplier->exists()) {
             Tools::log()->notice('record-updated-correctly');
             $this->redirect($supplier->url() . '&action=save-ok');
@@ -165,8 +165,8 @@ class EditContacto extends EditController
     protected function editAction(): bool
     {
         $return = parent::editAction();
-        if ($return && $this->active === $this->mainTabName()) {
-            $this->updateRelations($this->activeTab()->model);
+        if ($return && $this->active === $this->getMainViewName()) {
+            $this->updateRelations($this->views[$this->active]->model);
         }
 
         return $return;
@@ -250,7 +250,7 @@ class EditContacto extends EditController
      */
     protected function loadData($viewName, $view)
     {
-        $mvn = $this->mainTabName();
+        $mvn = $this->getMainViewName();
 
         switch ($viewName) {
             case 'docfiles':
@@ -258,7 +258,7 @@ class EditContacto extends EditController
                 break;
 
             case 'ListEmailSent':
-                $email = $this->mainTabModelValue('email');
+                $email = $this->getViewModelValue($mvn, 'email');
                 if (empty($email)) {
                     $this->setSettings($viewName, 'active', false);
                     break;
@@ -268,8 +268,8 @@ class EditContacto extends EditController
                 $view->loadData('', $where);
 
                 // añadimos un botón para enviar un nuevo email
-                $view->addButton([
-                    'action' => 'SendMail?email-to=' . $email,
+                $this->addButton($viewName, [
+                    'action' => 'SendMail?email=' . $email,
                     'color' => 'success',
                     'icon' => 'fa-solid fa-envelope',
                     'label' => 'send',
@@ -278,7 +278,7 @@ class EditContacto extends EditController
                 break;
 
             case 'ListPresupuestoCliente':
-                $id = $this->mainTabModelValue('idcontacto');
+                $id = $this->getViewModelValue($mvn, 'idcontacto');
                 $where = [Where::eq('idcontactofact', $id)];
                 $view->loadData('', $where);
                 break;
@@ -293,7 +293,7 @@ class EditContacto extends EditController
                     $this->addConversionButtons($viewName, $view);
                 }
                 if (!empty($view->model->cifnif)) {
-                    $view->addButton([
+                    $this->addButton($viewName, [
                         'action' => 'check-vies',
                         'color' => 'info',
                         'icon' => 'fa-solid fa-check-double',
@@ -309,7 +309,7 @@ class EditContacto extends EditController
      */
     protected function loadLanguageValues(string $viewName): void
     {
-        $columnLangCode = $this->tab($viewName)->columnForName('language');
+        $columnLangCode = $this->views[$viewName]->columnForName('language');
         if ($columnLangCode && $columnLangCode->widget->getType() === 'select') {
             $langs = [];
             foreach (Tools::lang()->getAvailableLanguages() as $key => $value) {

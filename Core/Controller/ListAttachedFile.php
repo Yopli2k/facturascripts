@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2018-2026 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2018-2023 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -25,7 +25,7 @@ use FacturaScripts\Core\Tools;
 use ZipArchive;
 
 /**
- * Controlador para listar los elementos del modelo AttachedFile
+ * Controller to list the items in the AttachedFile model
  *
  * @author Carlos García Gómez      <carlos@facturascripts.com>
  * @author Francesc Pineda Segarra  <francesc.pineda.segarra@gmail.com>
@@ -67,7 +67,7 @@ class ListAttachedFile extends ListController
         $this->addFilterSelect($viewName, 'mimetype', 'type', 'mimetype', $types);
 
         // buttons
-        $this->tab($viewName)->addButton([
+        $this->addButton($viewName, [
             'action' => 'download',
             'icon' => 'fa-solid fa-download',
             'label' => 'download'
@@ -92,7 +92,7 @@ class ListAttachedFile extends ListController
         }
 
         // añadimos los archivos
-        $model = $this->activeTab()->model;
+        $model = $this->views[$this->active]->model;
         foreach ($codes as $code) {
             $file = $model->get($code);
             if ($file) {

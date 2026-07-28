@@ -23,6 +23,7 @@ use FacturaScripts\Core\DataSrc\Familias;
 use FacturaScripts\Core\Template\ModelClass;
 use FacturaScripts\Core\Template\ModelTrait;
 use FacturaScripts\Core\Tools;
+use FacturaScripts\Core\Where;
 use FacturaScripts\Dinamic\Model\Subcuenta as DinSubcuenta;
 
 /**
@@ -35,25 +36,53 @@ class Familia extends ModelClass
 {
     use ModelTrait;
 
-    /** @var string Código identificativo de la familia de productos. */
+    /**
+     * Primary key.
+     *
+     * @var string
+     */
     public $codfamilia;
 
-    /** @var string Código de la subcuenta contable utilizada para compras. */
+    /**
+     * Account code for purchases.
+     *
+     * @var string
+     */
     public $codsubcuentacom;
 
-    /** @var string Código de la subcuenta de compras utilizada cuando se aplica IRPF. */
+    /**
+     * Code for the shopping account, but with IRPF.
+     *
+     * @var string
+     */
     public $codsubcuentairpfcom;
 
-    /** @var string Código de la subcuenta contable utilizada para ventas. */
+    /**
+     * Account code for sales.
+     *
+     * @var string
+     */
     public $codsubcuentaven;
 
-    /** @var string Descripción de la familia de productos. */
+    /**
+     * Family's description.
+     *
+     * @var string
+     */
     public $descripcion;
 
-    /** @var string Código de la familia superior. */
+    /**
+     * Mother family code.
+     *
+     * @var string
+     */
     public $madre;
 
-    /** @var int Número de productos asociados a la familia. */
+    /**
+     * Number of products
+     *
+     * @var int
+     */
     public $numproductos;
 
     public function changeId($new_id): bool
@@ -102,8 +131,9 @@ class Familia extends ModelClass
      */
     public function getSubFamilias(): array
     {
+        $where = [Where::eq('madre', $this->codfamilia)];
         $orderBy = ['descripcion' => 'ASC'];
-        return static::allWhereEq('madre', $this->codfamilia, $orderBy);
+        return static::all($where, $orderBy, 0, 0);
     }
 
     public static function primaryColumn(): string
@@ -166,8 +196,11 @@ class Familia extends ModelClass
 
         // comprobamos descripción
         $this->descripcion = Tools::noHtml($this->descripcion);
-        if (empty($this->descripcion)) {
-            Tools::log()->warning('field-required', ['%field%' => 'descripcion']);
+        if (empty($this->descripcion) || strlen($this->descripcion) > 100) {
+            Tools::log()->warning(
+                'invalid-column-lenght',
+                ['%column%' => 'descripcion', '%min%' => '1', '%max%' => '100']
+            );
             return false;
         }
 
@@ -207,7 +240,8 @@ class Familia extends ModelClass
         // comprobamos las subcuentas vinculadas
         $subAccount = new DinSubcuenta();
         if ($this->codsubcuentacom) {
-            if (false === $subAccount->loadWhereEq('codsubcuenta', $this->codsubcuentacom)) {
+            $where = [Where::eq('codsubcuenta', $this->codsubcuentacom)];
+            if (false === $subAccount->loadWhere($where)) {
                 Tools::log()->warning('family-purchases-subaccount-not-found', [
                     '%family%' => $this->codfamilia,
                     '%subaccount%' => $this->codsubcuentacom
@@ -216,13 +250,15 @@ class Familia extends ModelClass
             }
         }
         if (false === empty($this->codsubcuentairpfcom)) {
-            if (false === $subAccount->loadWhereEq('codsubcuenta', $this->codsubcuentairpfcom)) {
+            $where = [Where::eq('codsubcuenta', $this->codsubcuentairpfcom)];
+            if (false === $subAccount->loadWhere($where)) {
                 Tools::log()->warning('irpf-subaccount-not-found');
                 return false;
             }
         }
         if (false === empty($this->codsubcuentaven)) {
-            if (false === $subAccount->loadWhereEq('codsubcuenta', $this->codsubcuentaven)) {
+            $where = [Where::eq('codsubcuenta', $this->codsubcuentaven)];
+            if (false === $subAccount->loadWhere($where)) {
                 Tools::log()->warning('sales-subaccount-not-found');
                 return false;
             }

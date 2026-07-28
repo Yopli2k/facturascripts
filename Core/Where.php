@@ -57,25 +57,25 @@ final class Where
     /** Separador para indicar varios campos en `$fields`; produce condiciones unidas por OR. */
     const FIELD_SEPARATOR = '|';
 
-    /** @var DataBase Conexión compartida perezosa, instanciada en el primer uso. */
+    /** Conexión compartida perezosa, instanciada en el primer uso. @var DataBase */
     private static $db;
 
-    /** @var string Nombre del campo (o varios separados por FIELD_SEPARATOR). */
+    /** Nombre del campo (o varios separados por FIELD_SEPARATOR). @var string */
     public $fields;
 
-    /** @var string Operador SQL: `=`, `!=`, `<`, `>`, `LIKE`, `IN`, `BETWEEN`, `XLIKE`, ... o `(` para grupos. */
+    /** Operador SQL: `=`, `!=`, `<`, `>`, `LIKE`, `IN`, `BETWEEN`, `XLIKE`, ... o `(` para grupos. @var string */
     public $operator;
 
-    /** @var string Conector con la cláusula previa al concatenar: `AND` u `OR`. */
+    /** Conector con la cláusula previa al concatenar: `AND` u `OR`. @var string */
     public $operation;
 
-    /** @var Where[] Cláusulas hijas cuando el operador es `(` (grupo anidado). */
+    /** Cláusulas hijas cuando el operador es `(` (grupo anidado). @var Where[] */
     public $subWhere;
 
-    /** @var bool Si es true, los valores con prefijo `field:` se interpretan como nombre de columna. */
+    /** Si es true, los valores con prefijo `field:` se interpretan como nombre de columna. @var bool */
     public $useField;
 
-    /** @var mixed Valor a comparar; puede ser escalar, array (IN/BETWEEN) o null (se traduce a IS NULL). */
+    /** Valor a comparar; puede ser escalar, array (IN/BETWEEN) o null (se traduce a IS NULL). @var mixed */
     public $value;
 
     /**

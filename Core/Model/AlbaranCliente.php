@@ -22,6 +22,7 @@ namespace FacturaScripts\Core\Model;
 use FacturaScripts\Core\Lib\Calculator;
 use FacturaScripts\Core\Model\Base\SalesDocument;
 use FacturaScripts\Core\Template\ModelTrait;
+use FacturaScripts\Core\Where;
 use FacturaScripts\Dinamic\Model\LineaAlbaranCliente as LineaAlbaran;
 
 /**
@@ -35,7 +36,11 @@ class AlbaranCliente extends SalesDocument
 {
     use ModelTrait;
 
-    /** @var int Identificador único del albarán de cliente. */
+    /**
+     * Primary key. Integer.
+     *
+     * @var int
+     */
     public $idalbaran;
 
     /**
@@ -45,8 +50,9 @@ class AlbaranCliente extends SalesDocument
      */
     public function getLines(): array
     {
+        $where = [Where::eq('idalbaran', $this->idalbaran)];
         $order = ['orden' => 'DESC', 'idlinea' => 'ASC'];
-        return LineaAlbaran::allWhereEq('idalbaran', $this->idalbaran, $order);
+        return LineaAlbaran::all($where, $order, 0, 0);
     }
 
     /**

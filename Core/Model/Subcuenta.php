@@ -74,7 +74,9 @@ class Subcuenta extends ModelClass
      */
     public $descripcion;
 
-    /** @var bool Indica si se omiten las comprobaciones adicionales del modelo. */
+    /**
+     * @var bool
+     */
     private $disable_additional_test = false;
 
     /**
@@ -212,8 +214,12 @@ class Subcuenta extends ModelClass
         }
 
         $this->codsubcuenta = empty($this->idsubcuenta) ? $this->transformCodsubcuenta($this->codsubcuenta) : $this->codsubcuenta;
-        if (strlen($this->descripcion ?? '') < 1) {
-            Tools::log()->warning('field-required', ['%field%' => 'descripcion']);
+        if (strlen($this->descripcion) < 1 || strlen($this->descripcion) > 255) {
+            Tools::log()->warning('invalid-column-lenght', [
+                '%column%' => 'descripcion',
+                '%min%' => '1',
+                '%max%' => '255'
+            ]);
             return false;
         }
 

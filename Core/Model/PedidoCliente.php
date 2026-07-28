@@ -24,6 +24,7 @@ use FacturaScripts\Core\Lib\Calculator;
 use FacturaScripts\Core\Model\Base\SalesDocument;
 use FacturaScripts\Core\Template\ModelTrait;
 use FacturaScripts\Core\Tools;
+use FacturaScripts\Core\Where;
 use FacturaScripts\Dinamic\Model\LineaPedidoCliente as LineaPedido;
 
 /**
@@ -35,10 +36,18 @@ class PedidoCliente extends SalesDocument
 {
     use ModelTrait;
 
-    /** @var string Fecha hasta la que se mantiene la validez de la oferta. */
+    /**
+     * Date on which the validity of the estimation ends.
+     *
+     * @var string
+     */
     public $finoferta;
 
-    /** @var integer Identificador único del pedido de cliente. */
+    /**
+     * Primary key.
+     *
+     * @var integer
+     */
     public $idpedido;
 
     public function clear(): void
@@ -59,8 +68,9 @@ class PedidoCliente extends SalesDocument
      */
     public function getLines(): array
     {
+        $where = [Where::eq('idpedido', $this->idpedido)];
         $order = ['orden' => 'DESC', 'idlinea' => 'ASC'];
-        return LineaPedido::allWhereEq('idpedido', $this->idpedido, $order);
+        return LineaPedido::all($where, $order, 0, 0);
     }
 
     /**

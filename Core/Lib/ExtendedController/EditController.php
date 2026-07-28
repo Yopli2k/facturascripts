@@ -1,7 +1,7 @@
 <?php
 /**
  * This file is part of FacturaScripts
- * Copyright (C) 2017-2026 Carlos Garcia Gomez <carlos@facturascripts.com>
+ * Copyright (C) 2017-2025 Carlos Garcia Gomez <carlos@facturascripts.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -41,7 +41,8 @@ abstract class EditController extends PanelController
      */
     public function getModel()
     {
-        return $this->mainTab()->model;
+        $viewName = $this->getMainViewName();
+        return $this->views[$viewName]->model;
     }
 
     public function getPageData(): array
@@ -69,7 +70,7 @@ abstract class EditController extends PanelController
     {
         // comprobamos permisos
         if (
-            false === $this->activeTab()->settings['btnPrint'] ||
+            false === $this->views[$this->active]->settings['btnPrint'] ||
             false === $this->permissions->allowExport
         ) {
             Tools::log()->warning('no-print-permission');
@@ -114,7 +115,7 @@ abstract class EditController extends PanelController
      */
     protected function loadData($viewName, $view)
     {
-        $mainViewName = $this->mainTabName();
+        $mainViewName = $this->getMainViewName();
         switch ($viewName) {
             case $mainViewName:
                 /**

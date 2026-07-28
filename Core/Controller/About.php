@@ -30,9 +30,6 @@ use FacturaScripts\Dinamic\Model\FacturaCliente;
 use FacturaScripts\Dinamic\Model\Producto;
 use FacturaScripts\Dinamic\Model\User;
 
-/**
- * Controlador de la página «Acerca de», con información del sistema y su entorno de ejecución.
- */
 class About extends Controller
 {
     /** @var array */

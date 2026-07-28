@@ -29,7 +29,7 @@ use FacturaScripts\Dinamic\Lib\Accounting\PaymentToAccounting;
 use FacturaScripts\Dinamic\Model\PagoCliente;
 
 /**
- * Controlador para editar un único elemento del modelo ReciboCliente
+ * Description of EditReciboCliente
  *
  * @author Carlos Garcia Gomez <carlos@facturascripts.com>
  */
@@ -55,28 +55,29 @@ class EditReciboCliente extends EditController
         $this->setTabsPosition('bottom');
 
         // desactivamos selects con una sola opción
-        if (Empresas::count() <= 1) {
-            $this->mainTab()->disableColumn('company');
+        if (count(Empresas::all()) <= 1) {
+            $this->views[$this->getMainViewName()]->disableColumn('company');
         }
-        if (Divisas::count() <= 1) {
-            $this->mainTab()->disableColumn('currency');
+        if (count(Divisas::all()) <= 1) {
+            $this->views[$this->getMainViewName()]->disableColumn('currency');
         }
 
         // desactivamos el botón nuevo
-        $this->setSettings($this->mainTabName(), 'btnNew', false);
+        $this->setSettings($this->getMainViewName(), 'btnNew', false);
 
         $this->createViewPayments();
     }
 
     protected function createViewPayments($viewName = 'ListPagoCliente'): void
     {
-        $this->addListView($viewName, 'PagoCliente', 'payments')
-            ->addOrderBy(['fecha', 'hora'], 'date', 1)
-            // desactivamos el botón nuevo
-            ->setSettings('btnNew', false);
+        $this->addListView($viewName, 'PagoCliente', 'payments');
+        $this->views[$viewName]->addOrderBy(['fecha', 'hora'], 'date', 1);
+
+        // desactivamos el botón nuevo
+        $this->setSettings($viewName, 'btnNew', false);
 
         // añadimos el botón de generar asiento
-        $this->tab($viewName)->addButton([
+        $this->addButton($viewName, [
             'action' => 'generate-accounting',
             'icon' => 'fa-solid fa-wand-magic-sparkles',
             'label' => 'generate-accounting-entry'
@@ -137,18 +138,18 @@ class EditReciboCliente extends EditController
     {
         switch ($viewName) {
             case 'ListPagoCliente':
-                $id = $this->tabModelValue('EditReciboCliente', 'idrecibo');
+                $id = $this->getViewModelValue('EditReciboCliente', 'idrecibo');
                 $where = [Where::eq('idrecibo', $id)];
-                $view->loadData('', $where);
+                $this->views[$viewName]->loadData('', $where);
                 break;
 
             case 'EditReciboCliente':
                 parent::loadData($viewName, $view);
-                $view->model->nick = $this->user->nick;
-                if ($view->model->pagado) {
-                    $view->disableColumn('amount', false, 'true');
-                    $view->disableColumn('expenses', false, 'true');
-                    $view->disableColumn('payment', false, 'true');
+                $this->views[$viewName]->model->nick = $this->user->nick;
+                if ($this->views[$viewName]->model->pagado) {
+                    $this->views[$viewName]->disableColumn('amount', false, 'true');
+                    $this->views[$viewName]->disableColumn('expenses', false, 'true');
+                    $this->views[$viewName]->disableColumn('payment', false, 'true');
                 }
                 break;
         }

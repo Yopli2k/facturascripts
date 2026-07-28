@@ -26,10 +26,7 @@ use FacturaScripts\Dinamic\Model\FacturaProveedor;
 use FacturaScripts\Dinamic\Model\Familia;
 
 /**
- * Modelo auxiliar para obtener las subcuentas de compra de las líneas de los
- * documentos de compra. Agrupa las líneas de la factura de proveedor (excluyendo
- * suplidos) por la subcuenta de compras del producto y por familia, para poder
- * repartir el neto entre las subcuentas de gasto al generar el asiento contable.
+ * Auxiliary model to get sub-accounts of purchases document lines
  *
  * @author Carlos García Gómez           <carlos@facturascripts.com>
  * @author Jose Antonio Cuello Principal <yopli2000@gmail.com>
@@ -41,13 +38,7 @@ use FacturaScripts\Dinamic\Model\Familia;
 class PurchasesDocLineAccount extends JoinModel
 {
     /**
-     * Obtiene los totales del documento de compra agrupados por subcuenta.
-     * Para cada grupo de líneas toma la subcuenta de compras del producto,
-     * si no la de la familia, y en último caso la subcuenta por defecto indicada.
-     *
-     * @param FacturaProveedor $document
-     * @param string $defaultSubacode subcuenta a usar cuando ni el producto ni la familia definen una
-     * @return array totales indexados por código de subcuenta
+     * Get totals for subaccount of purchase document
      */
     public function getTotalsForDocument($document, string $defaultSubacode): array
     {
@@ -73,21 +64,16 @@ class PurchasesDocLineAccount extends JoinModel
         return $this->checkTotals($totals, $document, $defaultSubacode);
     }
 
-    /**
-     * Redondea los totales y comprueba que su suma coincide con el neto del
-     * documento. Si por los redondeos hay algún céntimo de diferencia,
-     * lo añade a la subcuenta por defecto para que el asiento cuadre.
-     */
     protected function checkTotals(array &$totals, $document, string $defaultSubacode): array
     {
-        // redondeamos y sumamos los totales
+        // round and add the totals
         $sum = 0.0;
         foreach ($totals as $key => $value) {
             $totals[$key] = round($value, FS_NF0);
             $sum += $totals[$key];
         }
 
-        // corregimos el posible descuadre de céntimos
+        // fix occasional penny mismatch
         if (!Tools::floatCmp($document->neto, $sum, FS_NF0, true)) {
             $diff = round($document->neto - $sum, FS_NF0);
             $totals[$defaultSubacode] = isset($totals[$defaultSubacode]) ? $totals[$defaultSubacode] + $diff : $diff;

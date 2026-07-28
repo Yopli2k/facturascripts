@@ -35,22 +35,22 @@ final class Request
     const METHOD_POST = 'POST';
     const METHOD_PUT = 'PUT';
 
-    /** @var SubRequest Cookies de la petición ($_COOKIE). */
+    /** Cookies de la petición ($_COOKIE). @var SubRequest */
     public $cookies;
 
-    /** @var RequestFiles Archivos subidos ($_FILES). */
+    /** Archivos subidos ($_FILES). @var RequestFiles */
     public $files;
 
-    /** @var Headers Cabeceras HTTP derivadas de $_SERVER. */
+    /** Cabeceras HTTP derivadas de $_SERVER. @var Headers */
     public $headers;
 
-    /** @var SubRequest Parámetros de la query string ($_GET). */
+    /** Parámetros de la query string ($_GET). @var SubRequest */
     public $query;
 
-    /** @var string|null Cuerpo crudo de la petición; si es null se lee de php://input bajo demanda. */
+    /** Cuerpo crudo de la petición; si es null se lee de php://input bajo demanda. @var string|null */
     private $rawInput;
 
-    /** @var SubRequest Parámetros del cuerpo de la petición ($_POST y PUT/PATCH form-urlencoded). */
+    /** Parámetros del cuerpo de la petición ($_POST y PUT/PATCH form-urlencoded). @var SubRequest */
     public $request;
 
     /**

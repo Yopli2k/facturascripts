@@ -34,25 +34,54 @@ class PageOption extends ModelClass
 {
     use ModelTrait;
 
-    /** @var array Definición de los grupos y columnas de la vista. */
+    /**
+     * Definition of the columns. It is called columns but it always
+     * contains GroupItem, which contains the columns.
+     *
+     * @var array
+     */
     public $columns;
 
-    /** @var int Identificador único de la configuración visual. */
+    /**
+     * Identifier
+     *
+     * @var int
+     */
     public $id;
 
-    /** @var string Fecha y hora de la última actualización. */
+    /**
+     * Last update date
+     *
+     * @var string
+     */
     public $last_update;
 
-    /** @var array Definición de los formularios modales de la vista. */
+    /**
+     * Definition of modal forms
+     *
+     * @var array
+     */
     public $modals;
 
-    /** @var string Nombre de la página o controlador al que pertenece la configuración. */
+    /**
+     * Name of the page (controller).
+     *
+     * @var string
+     */
     public $name;
 
-    /** @var string Nombre del usuario propietario de la configuración. */
+    /**
+     * User Identifier.
+     *
+     * @var string
+     */
     public $nick;
 
-    /** @var array Definición del tratamiento visual especial de las filas. */
+    /**
+     * Definition for special treatment of rows
+     *
+     * @var array
+     */
     public $rows;
 
     public function clear(): void

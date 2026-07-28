@@ -27,7 +27,7 @@ use FacturaScripts\Dinamic\Model\CuentaBanco;
 use FacturaScripts\Dinamic\Model\Ejercicio;
 
 /**
- * Controlador para editar un único elemento del modelo CuentaBanco
+ * Controller to edit a single item from the CuentaBanco model
  *
  * @author Carlos García Gómez           <carlos@facturascripts.com>
  * @author Jose Antonio Cuello Principal <yopli2000@gmail.com>
@@ -67,7 +67,7 @@ class EditCuentaBanco extends EditController
 
         // disable company column if there is only one company
         if ($this->empresa->count() < 2) {
-            $this->mainTab()->disableColumn('company');
+            $this->views[$this->getMainViewName()]->disableColumn('company');
         }
 
         $this->createSubAccountingView();
@@ -139,7 +139,7 @@ class EditCuentaBanco extends EditController
         switch ($viewName) {
             case 'ListSubcuenta':
                 $codejercicios = $this->getExerciseOfCompany();
-                $codsubcuenta = $this->mainTabModelValue('codsubcuenta');
+                $codsubcuenta = $this->getViewModelValue($this->getMainViewName(), 'codsubcuenta');
                 if (empty($codejercicios) || empty($codsubcuenta)) {
                     break;
                 }
@@ -147,7 +147,7 @@ class EditCuentaBanco extends EditController
                     Where::in('codejercicio', $codejercicios),
                     Where::eq('codsubcuenta', $codsubcuenta),
                 ];
-                $codsubcuenta2 = $this->mainTabModelValue('codsubcuentagasto');
+                $codsubcuenta2 = $this->getViewModelValue($this->getMainViewName(), 'codsubcuentagasto');
                 if ($codsubcuenta2 && $codsubcuenta2 != $codsubcuenta) {
                     $where[] = Where::orEq('codsubcuenta', $codsubcuenta2);
                 }
@@ -182,7 +182,7 @@ class EditCuentaBanco extends EditController
     {
         $result = [];
         $where = [
-            Where::eq('idempresa', $this->mainTabModelValue('idempresa'))
+            Where::eq('idempresa', $this->getViewModelValue($this->getMainViewName(), 'idempresa'))
         ];
         foreach ($this->codeModel->all('ejercicios', 'codejercicio', 'codejercicio', false, $where) as $row) {
             $result[] = $row->code;

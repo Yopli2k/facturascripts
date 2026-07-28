@@ -24,10 +24,7 @@ use FacturaScripts\Core\Where;
 use FacturaScripts\Dinamic\Model\Producto as DinProducto;
 
 /**
- * Modelo Variante con datos del Producto y de su impuesto. Combina las tablas
- * variantes, productos e impuestos para listar las variantes con su descripción
- * y el precio con IVA incluido (columna calculada precio_iva), con Producto
- * como modelo master.
+ * Model Variante with Producto data
  *
  * @author Raul Jimenez                     <raul.jimenez@nazcanetworks.com>
  * @author Jose Antonio Cuello Principal    <yopli2000@gmail.com>
