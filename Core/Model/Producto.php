@@ -39,144 +39,67 @@ class Producto extends ModelClass
 
     const ROUND_DECIMALS = 5;
 
-    /**
-     * Date when this product was updated.
-     *
-     * @var string
-     */
+    /** Fecha y hora de la última actualización del producto. @var string */
     public $actualizado;
 
-    /**
-     * True => the articles are locked / obsolete.
-     *
-     * @var bool
-     */
+    /** Indica si el producto está bloqueado u obsoleto. @var bool */
     public $bloqueado;
 
-    /**
-     * Code of the manufacturer to which it belongs. In the manufacturer class.
-     *
-     * @var string
-     */
+    /** Código del fabricante del producto. @var string */
     public $codfabricante;
 
-    /**
-     * Code of the family to which it belongs. In the family class.
-     *
-     * @var string
-     */
+    /** Código de la familia a la que pertenece el producto. @var string */
     public $codfamilia;
 
-    /**
-     * Account code for purchases.
-     *
-     * @var string
-     */
+    /** Código de la subcuenta contable utilizada para compras. @var string */
     public $codsubcuentacom;
 
-    /**
-     * Code for the shopping account, but with IRPF.
-     *
-     * @var string
-     */
+    /** Código de la subcuenta de compras utilizada cuando se aplica IRPF. @var string */
     public $codsubcuentairpfcom;
 
-    /**
-     * Account code for sales.
-     *
-     * @var string
-     */
+    /** Código de la subcuenta contable utilizada para ventas. @var string */
     public $codsubcuentaven;
 
-    /**
-     * Description of the product.
-     *
-     * @var string
-     */
+    /** Descripción del producto. @var string */
     public $descripcion;
 
-    /** @var string */
+    /** Código de la excepción de IVA aplicable al producto. @var string */
     public $excepcioniva;
 
-    /**
-     * Date on which the product was registered.
-     *
-     * @var string
-     */
+    /** Fecha de alta del producto. @var string */
     public $fechaalta;
 
-    /**
-     * Primary key.
-     *
-     * @var int
-     */
+    /** Identificador único del producto. @var int */
     public $idproducto;
 
-    /**
-     * True -> do not control the stock.
-     * Activating it implies putting True $ventasinstock;
-     *
-     * @var bool
-     */
+    /** Indica si el producto no requiere control de stock. @var bool */
     public $nostock;
 
-    /**
-     * Observations of the article.
-     *
-     * @var string
-     */
+    /** Observaciones internas sobre el producto. @var string */
     public $observaciones;
 
-    /**
-     * Price of the item, without taxes.
-     *
-     * @var float|int
-     */
+    /** Precio de venta del producto sin impuestos. @var float|int */
     public $precio;
 
-    /**
-     * True -> will be synchronized with the online store.
-     *
-     * @var bool
-     */
+    /** Indica si el producto se publica o sincroniza con la tienda online. @var bool */
     public $publico;
 
-    /**
-     * Main product reference or SKU.
-     *
-     * @var string
-     */
+    /** Referencia principal o SKU del producto. @var string */
     public $referencia;
 
-    /**
-     * True => the item is purchased.
-     *
-     * @var bool
-     */
+    /** Indica si el producto se puede comprar a proveedores. @var bool */
     public $secompra;
 
-    /**
-     * True => the item is sold.
-     *
-     * @var bool
-     */
+    /** Indica si el producto se puede vender a clientes. @var bool */
     public $sevende;
 
-    /**
-     * Physical stock.
-     *
-     * @var float|int
-     */
+    /** Stock físico total del producto. @var float|int */
     public $stockfis;
 
-    /** @var string */
+    /** Tipo o clasificación adicional del producto. @var string */
     public $tipo;
 
-    /**
-     * True -> allow sales without stock.
-     *
-     * @var bool
-     */
+    /** Indica si se permite vender el producto sin stock disponible. @var bool */
     public $ventasinstock;
 
     public function __get($key)
@@ -218,7 +141,7 @@ class Producto extends ModelClass
         $this->secompra = true;
         $this->sevende = true;
         $this->stockfis = 0.0;
-        $this->ventasinstock = (bool)Tools::settings('default', 'ventasinstock', false);
+        $this->ventasinstock = (bool)Tools::settings('default', 'ventasinstock', true);
     }
 
     public function delete(): bool
@@ -342,14 +265,6 @@ class Producto extends ModelClass
             $variant = new DinVariante();
             $this->referencia = (string)$variant->newCode('referencia');
         }
-        if (strlen($this->referencia) > 30) {
-            Tools::log()->warning(
-                'invalid-column-lenght',
-                ['%value%' => $this->referencia, '%column%' => 'referencia', '%min%' => '1', '%max%' => '30']
-            );
-            return false;
-        }
-
         if ($this->nostock && $this->stockfis != 0 && null !== $this->idproducto) {
             $sql = "DELETE FROM " . Stock::tableName() . " WHERE idproducto = " . self::db()->var2str($this->idproducto)
                 . "; UPDATE " . Variante::tableName() . " SET stockfis = 0 WHERE idproducto = "
